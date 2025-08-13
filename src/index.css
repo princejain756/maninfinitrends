@@ -46,11 +46,29 @@
     --radius: 1rem;
     
     /* Premium shadows & gradients */
-    --shadow-soft: 0 2px 20px -4px hsl(345 58% 30% / 0.1);
-    --shadow-elegant: 0 10px 40px -12px hsl(345 58% 30% / 0.25);
-    --gradient-maroon: linear-gradient(135deg, hsl(345 58% 30%), hsl(345 50% 35%));
-    --gradient-gold: linear-gradient(135deg, hsl(48 67% 48%), hsl(48 60% 55%));
-    --gradient-silk: linear-gradient(180deg, hsl(45 36% 97%), hsl(45 30% 94%));
+    --shadow-soft: 0 4px 30px -8px hsl(345 58% 30% / 0.15);
+    --shadow-elegant: 0 20px 60px -15px hsl(345 58% 30% / 0.4);
+    --shadow-luxury: 0 35px 80px -20px hsl(345 58% 30% / 0.6);
+    --shadow-glow: 0 0 40px hsl(48 67% 48% / 0.3);
+    --shadow-silk: 0 8px 25px -5px hsl(45 36% 93% / 0.8);
+    
+    --gradient-maroon: linear-gradient(135deg, hsl(345 58% 30%), hsl(345 50% 35%), hsl(345 45% 40%));
+    --gradient-gold: linear-gradient(135deg, hsl(48 67% 48%), hsl(48 60% 55%), hsl(48 55% 60%));
+    --gradient-silk: linear-gradient(180deg, hsl(45 36% 97%), hsl(45 30% 94%), hsl(45 25% 91%));
+    --gradient-hero: conic-gradient(from 180deg at 50% 50%, hsl(345 58% 30%) 0deg, hsl(48 67% 48%) 120deg, hsl(145 31% 33%) 240deg, hsl(345 58% 30%) 360deg);
+    --gradient-mesh: radial-gradient(ellipse at 20% 50%, hsl(345 58% 30% / 0.1) 0%, transparent 50%), 
+                     radial-gradient(ellipse at 80% 20%, hsl(48 67% 48% / 0.1) 0%, transparent 50%),
+                     radial-gradient(ellipse at 40% 80%, hsl(145 31% 33% / 0.1) 0%, transparent 50%);
+    
+    /* Glass morphism */
+    --glass-bg: hsl(45 36% 97% / 0.8);
+    --glass-border: hsl(45 20% 85% / 0.6);
+    --glass-blur: blur(20px);
+    
+    /* Cinematic motion */
+    --transition-elegant: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-silk: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 
     /* Sidebar */
     --sidebar-background: 45 36% 98%;
@@ -117,44 +135,113 @@
 }
 
 @layer components {
-  /* Maninfini Premium Components */
+  /* Maninfini Luxury Components */
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 
-           px-8 py-3 rounded-2xl font-medium transition-all duration-200
-           shadow-soft hover:shadow-elegant;
+    @apply relative overflow-hidden bg-gradient-to-r from-primary to-primary/90 
+           text-primary-foreground hover:from-primary/90 hover:to-primary/80
+           px-8 py-4 rounded-2xl font-medium transition-all duration-500
+           shadow-elegant hover:shadow-luxury hover:scale-[1.05] hover:-translate-y-1
+           before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent 
+           before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700;
   }
 
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90
-           px-8 py-3 rounded-2xl font-medium transition-all duration-200
-           shadow-soft hover:shadow-elegant;
+    @apply relative overflow-hidden bg-gradient-to-r from-secondary to-secondary/90 
+           text-secondary-foreground hover:from-secondary/90 hover:to-secondary/80
+           px-8 py-4 rounded-2xl font-medium transition-all duration-500
+           shadow-elegant hover:shadow-luxury hover:scale-[1.05] hover:-translate-y-1
+           before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent 
+           before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700;
   }
 
   .btn-accent {
-    @apply bg-gradient-to-r from-accent to-accent/90 text-accent-foreground
-           px-8 py-3 rounded-2xl font-medium transition-all duration-200
-           shadow-soft hover:shadow-elegant hover:scale-[1.02];
+    @apply relative overflow-hidden bg-gradient-to-r from-accent via-accent/90 to-accent 
+           text-accent-foreground hover:from-accent/90 hover:via-accent/80 hover:to-accent/90
+           px-8 py-4 rounded-2xl font-medium transition-all duration-500
+           shadow-glow hover:shadow-luxury hover:scale-[1.08] hover:-translate-y-2
+           before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/30 before:to-transparent 
+           before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700
+           animate-pulse-glow;
+  }
+
+  .btn-glass {
+    @apply backdrop-blur-md bg-white/10 border border-white/20 text-foreground
+           hover:bg-white/20 hover:border-white/30 px-8 py-4 rounded-2xl font-medium 
+           transition-all duration-500 shadow-silk hover:shadow-elegant 
+           hover:scale-[1.03] hover:-translate-y-0.5;
   }
 
   .card-premium {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl
-           shadow-soft hover:shadow-elegant transition-all duration-300
-           hover:scale-[1.02];
+    @apply relative overflow-hidden bg-gradient-to-br from-card via-card/95 to-card/90 
+           backdrop-blur-xl border border-border/30 rounded-3xl
+           shadow-elegant hover:shadow-luxury transition-all duration-700
+           hover:scale-[1.02] hover:-translate-y-1 group
+           before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-0 
+           hover:before:opacity-100 before:transition-opacity before:duration-700;
+  }
+
+  .card-glass {
+    @apply backdrop-blur-md bg-glass-bg border border-glass-border rounded-3xl
+           shadow-silk hover:shadow-elegant transition-all duration-500
+           hover:scale-[1.02] hover:bg-white/20;
+  }
+
+  .card-floating {
+    @apply card-premium animate-float hover:pause;
   }
 
   .text-display {
-    @apply font-cormorant font-medium tracking-tight;
+    @apply font-cormorant font-medium tracking-tight 
+           bg-gradient-to-br from-foreground via-foreground to-foreground/80 
+           bg-clip-text text-transparent;
+  }
+
+  .text-luxury {
+    @apply font-cormorant font-semibold tracking-tight 
+           bg-gradient-to-br from-primary via-accent to-secondary 
+           bg-clip-text text-transparent animate-shimmer
+           bg-[length:200%_100%];
   }
 
   .hero-gradient {
-    @apply bg-gradient-to-br from-background via-card to-muted;
+    @apply relative overflow-hidden bg-gradient-to-br from-background via-card to-muted
+           before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-30;
   }
 
   .silk-texture {
-    background: linear-gradient(135deg, 
-      hsl(var(--mnf-ivory)) 0%, 
-      hsl(var(--mnf-ivory) / 0.8) 50%, 
-      hsl(var(--mnf-ivory)) 100%);
+    background: var(--gradient-silk);
+    position: relative;
+  }
+  
+  .silk-texture::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, white/20 0%, transparent 60%),
+                radial-gradient(circle at 70% 70%, hsl(var(--mnf-gold))/10 0%, transparent 50%);
+    animation: silk-shimmer 4s ease-in-out infinite;
+  }
+
+  .mesh-gradient {
+    background: var(--gradient-mesh);
+  }
+
+  .cinematic-blur {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+
+  /* Interactive Elements */
+  .hover-lift {
+    @apply transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-luxury;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-500 hover:shadow-glow;
+  }
+
+  .stagger-animation {
+    animation-delay: calc(var(--stagger) * 100ms);
   }
 
   /* Motion preferences */
