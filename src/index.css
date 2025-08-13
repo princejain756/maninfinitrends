@@ -1,58 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
+/* Maninfini Trends Design System */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Maninfini Brand Colors */
+    --mnf-maroon: 345 58% 30%;     /* #7A1F2B */
+    --mnf-ivory: 45 36% 93%;       /* #F7F3ED */
+    --mnf-ink: 210 17% 8%;         /* #111315 */
+    --mnf-gold: 48 67% 48%;        /* #C9A227 */
+    --mnf-leaf: 145 31% 33%;       /* #3B6E57 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Light Theme Mapping */
+    --background: 45 36% 97%;      /* Softer ivory */
+    --foreground: 210 17% 8%;      /* Ink */
+    
+    --card: 45 36% 99%;
+    --card-foreground: 210 17% 8%;
+    
+    --popover: 45 36% 99%;
+    --popover-foreground: 210 17% 8%;
+    
+    --primary: 345 58% 30%;        /* Maroon */
+    --primary-foreground: 45 36% 97%;
+    
+    --secondary: 145 31% 33%;      /* Leaf */
+    --secondary-foreground: 45 36% 97%;
+    
+    --muted: 45 20% 90%;
+    --muted-foreground: 210 10% 45%;
+    
+    --accent: 48 67% 48%;          /* Gold */
+    --accent-foreground: 210 17% 8%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 45 20% 85%;
+    --input: 45 20% 88%;
+    --ring: 345 58% 30%;
+    
+    --radius: 1rem;
+    
+    /* Premium shadows & gradients */
+    --shadow-soft: 0 2px 20px -4px hsl(345 58% 30% / 0.1);
+    --shadow-elegant: 0 10px 40px -12px hsl(345 58% 30% / 0.25);
+    --gradient-maroon: linear-gradient(135deg, hsl(345 58% 30%), hsl(345 50% 35%));
+    --gradient-gold: linear-gradient(135deg, hsl(48 67% 48%), hsl(48 60% 55%));
+    --gradient-silk: linear-gradient(180deg, hsl(45 36% 97%), hsl(45 30% 94%));
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 45 36% 98%;
+    --sidebar-foreground: 210 17% 15%;
+    --sidebar-primary: 345 58% 30%;
+    --sidebar-primary-foreground: 45 36% 97%;
+    --sidebar-accent: 45 20% 92%;
+    --sidebar-accent-foreground: 210 17% 8%;
+    --sidebar-border: 45 20% 88%;
+    --sidebar-ring: 345 58% 30%;
   }
 
   .dark {
@@ -100,6 +108,61 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-cormorant font-medium;
+  }
+}
+
+@layer components {
+  /* Maninfini Premium Components */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 
+           px-8 py-3 rounded-2xl font-medium transition-all duration-200
+           shadow-soft hover:shadow-elegant;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90
+           px-8 py-3 rounded-2xl font-medium transition-all duration-200
+           shadow-soft hover:shadow-elegant;
+  }
+
+  .btn-accent {
+    @apply bg-gradient-to-r from-accent to-accent/90 text-accent-foreground
+           px-8 py-3 rounded-2xl font-medium transition-all duration-200
+           shadow-soft hover:shadow-elegant hover:scale-[1.02];
+  }
+
+  .card-premium {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl
+           shadow-soft hover:shadow-elegant transition-all duration-300
+           hover:scale-[1.02];
+  }
+
+  .text-display {
+    @apply font-cormorant font-medium tracking-tight;
+  }
+
+  .hero-gradient {
+    @apply bg-gradient-to-br from-background via-card to-muted;
+  }
+
+  .silk-texture {
+    background: linear-gradient(135deg, 
+      hsl(var(--mnf-ivory)) 0%, 
+      hsl(var(--mnf-ivory) / 0.8) 50%, 
+      hsl(var(--mnf-ivory)) 100%);
+  }
+
+  /* Motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
