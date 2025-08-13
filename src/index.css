@@ -175,7 +175,7 @@
     @apply relative overflow-hidden bg-gradient-to-br from-card via-card/95 to-card/90 
            backdrop-blur-xl border border-border/30 rounded-3xl
            shadow-elegant hover:shadow-luxury transition-all duration-700
-           hover:scale-[1.02] hover:-translate-y-1 group
+           hover:scale-[1.02] hover:-translate-y-1
            before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-0 
            hover:before:opacity-100 before:transition-opacity before:duration-700;
   }
