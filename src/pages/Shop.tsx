@@ -15,6 +15,9 @@ import { ProductCard } from '@/components/Product/ProductCard';
 import { products, categories } from '@/data/products';
 import { Filter, Grid, List, Search, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
+import SeoHead from '@/components/Seo/SeoHead';
+import JsonLd from '@/components/Seo/JsonLd';
+import { BASE_URL } from '@/config/seo';
 
 const Shop = () => {
   const { category } = useParams();
@@ -95,6 +98,11 @@ const Shop = () => {
       <Header />
       
       <main className="pt-20">
+        <SeoHead
+          title={category ? `Shop ${category.charAt(0).toUpperCase() + category.slice(1)} — Maninfini Trends` : 'Shop — Maninfini Trends'}
+          description="Discover our curated collection of ethnic elegance and eco-smart style"
+          canonicalPath={category ? `/shop/${category}` : '/shop'}
+        />
         {/* Hero Section */}
         <section className="bg-gradient-subtle py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -114,6 +122,20 @@ const Shop = () => {
         </section>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Breadcrumb JSON-LD */}
+          <JsonLd
+            data={{
+              '@context': 'https://schema.org',
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
+                { '@type': 'ListItem', position: 2, name: 'Shop', item: `${BASE_URL}/shop` },
+                ...(category
+                  ? [{ '@type': 'ListItem', position: 3, name: category, item: `${BASE_URL}/shop/${category}` }]
+                  : []),
+              ],
+            }}
+          />
           {/* Search and Controls */}
           <div className="flex flex-col lg:flex-row gap-4 mb-8">
             <div className="flex-1 relative">

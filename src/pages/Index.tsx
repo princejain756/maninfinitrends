@@ -9,10 +9,12 @@ import { RepairsTeaser } from '@/components/Home/RepairsTeaser';
 import { Testimonials } from '@/components/Home/Testimonials';
 import { Newsletter } from '@/components/Home/Newsletter';
 import { InstagramFeed } from '@/components/Home/InstagramFeed';
+import SeoHead from '@/components/Seo/SeoHead';
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SeoHead canonicalPath="/" />
       <Header />
       <main>
         <Hero />

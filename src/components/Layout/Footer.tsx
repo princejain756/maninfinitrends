@@ -52,19 +52,27 @@ export const Footer = () => {
         
         {/* Main Footer Content */}
         <div className="py-16 lg:py-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+
             {/* Brand Section */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-2">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
               >
-                <h3 className="text-display text-2xl font-semibold text-primary mb-3">
-                  Maninfini Trends
-                </h3>
+                <motion.img
+                  src="/logo.png"
+                  alt="Maninfini Trends"
+                  className="h-24 lg:h-32 w-auto object-contain mb-6 drop-shadow-lg"
+                  whileHover={{
+                    scale: 1.05,
+                    rotate: 1,
+                    filter: "brightness(1.1)"
+                  }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                />
                 <p className="text-sm text-muted-foreground italic mb-6">
                   Ethnic elegance. Eco-smart style.
                 </p>
@@ -192,6 +200,30 @@ export const Footer = () => {
                 </div>
               </motion.div>
             </div>
+
+            {/* Policies */}
+            <div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                <h4 className="font-semibold text-foreground mb-6">Policies</h4>
+                <ul className="space-y-3">
+                  {policies.map((policy) => (
+                    <li key={policy.name}>
+                      <a
+                        href={policy.href}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {policy.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            </div>
           </div>
         </div>
 
@@ -259,25 +291,17 @@ export const Footer = () => {
           </Collapsible>
         </div>
 
-        {/* Policies & Copyright */}
+        {/* Copyright */}
         <div className="py-6 border-t border-border">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-              {policies.map((policy, index) => (
-                <a 
-                  key={policy.name}
-                  href={policy.href}
-                  className="hover:text-foreground transition-colors"
-                >
-                  {policy.name}
-                </a>
-              ))}
-            </div>
             <div className="text-xs text-muted-foreground">
-              © 2024 Maninfini Trends Private Limited. All rights reserved.
+              © 2025 Maninfini Trends Private Limited. All rights reserved.
+            </div>
+            <div className="text-xs text-muted-foreground text-center md:text-right">
+              Made with ❤️ for beautiful fashion
             </div>
           </div>
-          
+
           {/* GST Notice */}
           <div className="mt-4 text-xs text-muted-foreground text-center md:text-left">
             GST included in all prices. Invoice will be generated for all purchases.

@@ -132,6 +132,33 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-cormorant font-medium;
   }
+
+  /* Custom animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: var(--shadow-glow);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 60px hsl(48 67% 48% / 0.5);
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes silk-shimmer {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
 }
 
 @layer components {
@@ -187,7 +214,11 @@
   }
 
   .card-floating {
-    @apply card-premium animate-float hover:pause;
+    @apply card-premium animate-float;
+  }
+
+  .card-floating:hover {
+    animation-play-state: paused;
   }
 
   .text-display {
@@ -251,5 +282,55 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer utilities {
+  .bg-gradient-mesh {
+    background: var(--gradient-mesh);
+  }
+
+  .bg-glass-bg {
+    background: var(--glass-bg);
+  }
+
+  .border-glass-border {
+    border-color: var(--glass-border);
+  }
+
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+
+  .shadow-luxury {
+    box-shadow: var(--shadow-luxury);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-silk {
+    box-shadow: var(--shadow-silk);
+  }
+
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+
+  .font-cormorant {
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
   }
 }

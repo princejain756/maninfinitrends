@@ -3,10 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ShoppingBag, Menu, X, User, Heart, MapPin, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
+import sareeIcon from '@/assets/icons/sareebg.png';
+import salwarIcon from '@/assets/icons/salwarbg.png';
+import kurtiIcon from '@/assets/icons/kurtisbg.png';
+import indoIcon from '@/assets/icons/indo-westernbg.png';
+import fabricsIcon from '@/assets/icons/fabricsbg.png';
+import { api } from '@/lib/api';
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [cartCount, setCartCount] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<{d:number;h:number;m:number;s:number}>({ d: 0, h: 0, m: 0, s: 0 });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,24 +25,82 @@ export const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // FOMO countdown: persists per-visitor using localStorage
+  useEffect(() => {
+    const KEY = 'mnf_sale_deadline_ms';
+    let deadlineMs = Number(localStorage.getItem(KEY));
+    const now = Date.now();
+    if (!deadlineMs || deadlineMs < now) {
+      // New 2-hour window from now for strong urgency
+      deadlineMs = now + 2 * 60 * 60 * 1000;
+      localStorage.setItem(KEY, String(deadlineMs));
+    }
+
+    const tick = () => {
+      const remaining = Math.max(0, deadlineMs - Date.now());
+      const d = Math.floor(remaining / (24 * 60 * 60 * 1000));
+      const h = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const m = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      const s = Math.floor((remaining % (60 * 1000)) / 1000);
+      setTimeLeft({ d, h, m, s });
+
+      if (remaining <= 0) {
+        // Immediately roll a new short window (45–90 min) to maintain momentum
+        const nextWindow = 45 + Math.floor(Math.random() * 46);
+        const nextDeadline = Date.now() + nextWindow * 60 * 1000;
+        localStorage.setItem(KEY, String(nextDeadline));
+      }
+    };
+
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    // Fetch cart count from backend
+    const load = async () => {
+      try {
+        const cart = await api<{ count: number }>(`/api/cart`);
+        setCartCount(cart.count || 0);
+      } catch (e) {
+        // noop in case backend not running yet
+      }
+    };
+    load();
+  }, []);
+
   const collections = [
-    { name: 'Sarees', href: '/collections/sarees', featured: true },
-    { name: 'Salwars', href: '/collections/salwars' },
-    { name: 'Kurtis', href: '/collections/kurtis' },
-    { name: 'Indo-Western', href: '/collections/indo-western' },
-    { name: 'Fabrics', href: '/collections/fabrics' },
+    { name: 'Sarees', href: '/collections/sarees', featured: true, icon: sareeIcon },
+    { name: 'Salwars', href: '/collections/salwars', icon: salwarIcon },
+    { name: 'Kurtis', href: '/collections/kurtis', icon: kurtiIcon },
+    { name: 'Indo-Western', href: '/collections/indo-western', icon: indoIcon },
+    { name: 'Fabrics', href: '/collections/fabrics', icon: fabricsIcon },
   ];
 
   return (
     <>
-      {/* Announcement Bar */}
+      {/* Announcement Bar + FOMO Countdown */}
       <div className="bg-primary text-primary-foreground text-center py-2 px-4 text-sm font-medium">
-        <div className="flex items-center justify-center gap-4 max-w-7xl mx-auto">
-          <span>Free shipping over ₹999</span>
-          <span className="hidden sm:inline">•</span>
-          <span className="hidden sm:inline">Easy returns</span>
-          <span className="hidden md:inline">•</span>
-          <span className="hidden md:inline">COD available</span>
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="hidden md:inline">FESTIVE SALE | UPTO 50% OFF SITEWIDE</span>
+            <span className="md:inline hidden">—</span>
+            <span className="uppercase tracking-widest text-xs">Only {String(timeLeft.h).padStart(2,'0')}h {String(timeLeft.m).padStart(2,'0')}m left</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-5">
+            {[
+              { label: 'DAY', value: timeLeft.d },
+              { label: 'HRS', value: timeLeft.h },
+              { label: 'MIN', value: timeLeft.m },
+              { label: 'SEC', value: timeLeft.s },
+            ].map((k) => (
+              <div key={k.label} className="flex flex-col items-center min-w-10">
+                <div className="text-lg font-semibold tabular-nums">{String(k.value).padStart(2,'0')}</div>
+                <div className="text-[10px] opacity-80 tracking-wide">{k.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -60,17 +127,19 @@ export const Header = () => {
             </button>
 
             {/* Logo */}
-            <motion.div 
+            <motion.div
               className="flex-shrink-0"
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.2 }}
+              whileHover={{ scale: 1.08, rotate: 2 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <h1 className="text-display text-2xl lg:text-3xl text-primary font-semibold">
-                Maninfini Trends
-              </h1>
-              <p className="text-xs text-muted-foreground font-inter italic">
-                Ethnic elegance. Eco-smart style.
-              </p>
+              <Link to="/" className="block group">
+                <motion.img
+                  src="/logo.png"
+                  alt="Maninfini Trends"
+                  className="h-16 lg:h-24 w-auto object-contain drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-300"
+                  whileHover={{ filter: "brightness(1.1)" }}
+                />
+              </Link>
             </motion.div>
 
             {/* Desktop Navigation */}
@@ -79,15 +148,16 @@ export const Header = () => {
                 <button className="font-medium text-foreground hover:text-primary transition-colors">
                   Collections
                 </button>
-                <div className="absolute top-full left-0 w-64 bg-card/95 backdrop-blur-md shadow-elegant rounded-2xl border border-border/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 mt-2 p-6">
-                  <div className="space-y-3">
+                <div className="absolute top-full left-0 w-[320px] bg-card/95 backdrop-blur-md shadow-elegant rounded-2xl border border-border/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 mt-2 p-4">
+                  <div className="space-y-2">
                     {collections.map((collection) => (
                       <a
                         key={collection.name}
                         href={collection.href}
-                        className="flex items-center justify-between p-3 rounded-xl hover:bg-muted transition-colors group/item"
+                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-muted transition-colors group/item"
                       >
-                        <span className="font-medium">{collection.name}</span>
+                        <img src={collection.icon} alt={collection.name} className="w-9 h-9 object-contain" />
+                        <span className="font-medium flex-1">{collection.name}</span>
                         {collection.featured && (
                           <Badge className="bg-accent text-accent-foreground">New</Badge>
                         )}
@@ -106,6 +176,9 @@ export const Header = () => {
               <a href="/repairs" className="font-medium text-foreground hover:text-primary transition-colors">
                 Repairs
               </a>
+              <a href="/blog" className="font-medium text-foreground hover:text-secondary transition-colors">
+                Blog
+              </a>
             </nav>
 
             {/* Right Actions */}
@@ -121,19 +194,21 @@ export const Header = () => {
               </button>
 
               {/* Wishlist */}
-              <button className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors relative">
+              <button className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors relative" aria-label="Wishlist with 3 items">
                 <Heart className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-accent text-accent-foreground">
+                <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent text-accent-foreground text-[10px] leading-none px-1 border-2 border-background shadow-sm">
                   3
-                </Badge>
+                </span>
               </button>
 
               {/* Cart */}
-              <button className="p-2 rounded-xl hover:bg-muted transition-colors relative">
+              <button className="p-2 rounded-xl hover:bg-muted transition-colors relative" aria-label={`Cart with ${cartCount} items`}>
                 <ShoppingBag className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary text-primary-foreground">
-                  2
-                </Badge>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary text-primary-foreground text-[10px] leading-none px-1 border-2 border-background shadow-sm">
+                    {cartCount}
+                  </span>
+                )}
               </button>
 
               {/* Quick Links */}
@@ -169,8 +244,14 @@ export const Header = () => {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
             >
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-display text-xl text-primary font-semibold">Menu</h2>
-                <button 
+                <Link to="/" className="flex items-center gap-3">
+                  <img
+                    src="/logo.png"
+                    alt="Maninfini Trends"
+                    className="h-14 w-auto object-contain"
+                  />
+                </Link>
+                <button
                   onClick={() => setIsMenuOpen(false)}
                   className="p-2 rounded-xl hover:bg-muted transition-colors"
                 >
@@ -186,9 +267,10 @@ export const Header = () => {
                       <a
                         key={collection.name}
                         href={collection.href}
-                        className="block py-2 text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex items-center gap-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {collection.name}
+                        <img src={collection.icon} alt={collection.name} className="w-6 h-6 object-contain" />
+                        <span>{collection.name}</span>
                       </a>
                     ))}
                   </div>
@@ -202,6 +284,9 @@ export const Header = () => {
                 </a>
                 <a href="/repairs" className="block py-3 font-medium text-foreground hover:text-primary transition-colors">
                   Repairs & Restoration
+                </a>
+                <a href="/blog" className="block py-3 font-medium text-foreground hover:text-secondary transition-colors">
+                  Fashion Blog
                 </a>
                 
                 <div className="pt-6 border-t border-border">

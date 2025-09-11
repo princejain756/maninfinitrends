@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/store/cart';
 import { CartItem } from '@/components/Cart/CartItem';
 import { ShoppingBag, ArrowRight, Trash2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -110,6 +111,26 @@ const Cart = () => {
             <div className="space-y-6">
               <Card className="p-6 sticky top-24">
                 <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
+                {(() => {
+                  const threshold = 999;
+                  const subtotal = getTotalPrice();
+                  const remaining = Math.max(0, threshold - subtotal);
+                  const progress = Math.min(100, Math.round((subtotal / threshold) * 100));
+                  return (
+                    <div className="mb-4 p-3 rounded-xl bg-muted/50">
+                      {remaining > 0 ? (
+                        <>
+                          <div className="text-sm mb-2">
+                            You’re <span className="font-semibold">₹{remaining.toLocaleString()}</span> away from <span className="font-semibold">Free Shipping</span>
+                          </div>
+                          <Progress value={progress} />
+                        </>
+                      ) : (
+                        <div className="text-sm text-emerald-700 font-medium">🎉 You’ve unlocked Free Shipping!</div>
+                      )}
+                    </div>
+                  );
+                })()}
                 
                 <div className="space-y-4">
                   <div className="flex justify-between">
