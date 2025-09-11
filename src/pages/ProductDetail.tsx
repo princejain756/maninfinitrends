@@ -14,9 +14,12 @@ import { Label } from '@/components/ui/label';
 import { products } from '@/data/products';
 import { Product } from '@/types/product';
 import { useCartStore } from '@/store/cart';
-import { Heart, Share2, ShoppingCart, Star, Truck, Shield, RotateCcw, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { Heart, Share2, ShoppingCart, Star, Truck, Shield, RotateCcw, ChevronLeft, ChevronRight, Maximize2, Eye, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import SeoHead from '@/components/Seo/SeoHead';
+import JsonLd from '@/components/Seo/JsonLd';
+import { BASE_URL, BRAND } from '@/config/seo';
 
 const ProductDetail = () => {
   const { handle } = useParams();
@@ -29,6 +32,40 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [isWishlist, setIsWishlist] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [countdown, setCountdown] = useState<string>("");
+  const [viewers, setViewers] = useState<number>(() => 12 + Math.floor(Math.random() * 24));
+
+  // Shipping cutoff countdown (5:00 PM local time)
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const cutoff = new Date();
+      cutoff.setHours(17, 0, 0, 0);
+      if (now > cutoff) {
+        cutoff.setDate(cutoff.getDate() + 1);
+      }
+      const diff = cutoff.getTime() - now.getTime();
+      const h = String(Math.floor(diff / 1000 / 3600)).padStart(2, '0');
+      const m = String(Math.floor((diff / 1000 % 3600) / 60)).padStart(2, '0');
+      const s = String(Math.floor(diff / 1000 % 60)).padStart(2, '0');
+      setCountdown(`${h}:${m}:${s}`);
+    };
+    updateCountdown();
+    const id = setInterval(updateCountdown, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Live viewers simulation (ethical nudge)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setViewers((v) => {
+        const delta = Math.random() < 0.5 ? -1 : 1;
+        const nv = Math.min(48, Math.max(10, v + delta));
+        return nv;
+      });
+    }, 20000 + Math.random() * 20000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const foundProduct = products.find(p => p.handle === handle);
@@ -69,10 +106,56 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SeoHead
+        title={product.seo?.title || `${product.title} — ${BRAND}`}
+        description={product.seo?.description || product.shortDescription}
+        canonicalPath={`/product/${product.handle}`}
+        image={product.images?.[0] && product.images[0].startsWith('http') ? product.images[0] : undefined}
+      />
       <Header />
       
-      <main className="pt-20">
+      <main className="pt-20 pb-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* JSON-LD: Breadcrumb + Product */}
+          <JsonLd
+            data={[
+              {
+                '@context': 'https://schema.org',
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
+                  { '@type': 'ListItem', position: 2, name: 'Shop', item: `${BASE_URL}/shop` },
+                  { '@type': 'ListItem', position: 3, name: product.category, item: `${BASE_URL}/shop/${product.category}` },
+                  { '@type': 'ListItem', position: 4, name: product.title, item: `${BASE_URL}/product/${product.handle}` },
+                ],
+              },
+              {
+                '@context': 'https://schema.org',
+                '@type': 'Product',
+                name: product.title,
+                image: product.images.map((src) => (src.startsWith('http') ? src : `${BASE_URL}${src}`)),
+                description: product.shortDescription || product.description,
+                sku: product.sku,
+                brand: { '@type': 'Brand', name: BRAND },
+                url: `${BASE_URL}/product/${product.handle}`,
+                offers: {
+                  '@type': 'Offer',
+                  priceCurrency: 'INR',
+                  price: product.price,
+                  availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                  url: `${BASE_URL}/product/${product.handle}`,
+                  itemCondition: 'https://schema.org/NewCondition',
+                },
+                aggregateRating: product.reviews?.count
+                  ? {
+                      '@type': 'AggregateRating',
+                      ratingValue: product.reviews.rating,
+                      reviewCount: product.reviews.count,
+                    }
+                  : undefined,
+              },
+            ]}
+          />
           {/* Breadcrumb */}
           <nav className="flex items-center text-sm text-muted-foreground mb-8">
             <button onClick={() => navigate('/')} className="hover:text-foreground">Home</button>
@@ -234,6 +317,16 @@ const ProductDetail = () => {
                 <p className="text-sm text-muted-foreground">
                   Inclusive of all taxes | GST: {(product.taxRate * 100).toFixed(0)}%
                 </p>
+                <div className="flex flex-wrap items-center gap-4 text-sm mt-1">
+                  <span className="flex items-center gap-1 text-emerald-600">
+                    <Truck className="h-4 w-4" />
+                    Order in <span className="font-medium">{countdown}</span> for dispatch today
+                  </span>
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Eye className="h-4 w-4" />
+                    {viewers} viewing now
+                  </span>
+                </div>
               </div>
 
               {/* Variants/Attributes */}
@@ -241,7 +334,19 @@ const ProductDetail = () => {
                 <div className="space-y-4">
                   {product.attributes.sizes && (
                     <div>
-                      <Label className="text-sm font-medium mb-2 block">Size</Label>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium">Size</Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const ev = new CustomEvent('mnf:chat-open', { detail: { step: 'size' } });
+                            window.dispatchEvent(ev);
+                          }}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Find my size
+                        </button>
+                      </div>
                       <Select 
                         value={selectedVariants.size || ''} 
                         onValueChange={(value) => setSelectedVariants(prev => ({ ...prev, size: value }))}
@@ -447,6 +552,20 @@ const ProductDetail = () => {
 
       <Footer />
       <CartSidebar />
+      {/* Sticky mobile CTA */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur-md border-t border-border px-4 py-3 lg:hidden">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium truncate">{product.title}</div>
+            <div className="text-primary font-semibold">₹{product.price.toLocaleString()}</div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>-</Button>
+          <div className="w-8 text-center text-sm font-medium">{quantity}</div>
+          <Button size="sm" variant="outline" onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} disabled={quantity >= product.stock}>+</Button>
+          <Button className="btn-primary" onClick={handleAddToCart}><ShoppingCart className="h-4 w-4 mr-1" /> Add</Button>
+          <Button variant="outline" onClick={handleBuyNow}>Buy</Button>
+        </div>
+      </div>
     </div>
   );
 };

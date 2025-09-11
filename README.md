@@ -60,6 +60,47 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Backend (PostgreSQL + Express + Prisma)
+
+This repo includes an API server for carts, products and orders using PostgreSQL.
+
+Quick start:
+
+1) Start Postgres
+
+```sh
+docker compose up -d
+```
+
+2) Configure and migrate
+
+```sh
+cp server/.env.example server/.env
+cd server
+npm i
+npx prisma generate
+npm run prisma:migrate
+npm run seed
+```
+
+3) Run API server
+
+```sh
+npm run dev
+# API at http://localhost:3001
+```
+
+4) Frontend – create `.env.local` (optional) and run
+
+```sh
+cp .env.example .env.local
+npm i
+npm run dev
+# App at http://localhost:5173
+```
+
+The frontend reads `VITE_API_BASE_URL` and shows a real cart count in the header.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/41b76f9e-90b5-4948-8ef8-3823deedb0e9) and click on Share -> Publish.

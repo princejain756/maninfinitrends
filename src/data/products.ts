@@ -37,8 +37,8 @@ export const products: Product[] = [
       description: 'Shop authentic handwoven Banarasi silk sarees with intricate gold zari work. Perfect for weddings and special occasions.',
       keywords: ['banarasi saree', 'silk saree', 'wedding saree', 'zari work']
     },
-    createdAt: '2024-01-15T00:00:00Z',
-    updatedAt: '2024-01-15T00:00:00Z'
+    createdAt: '2025-01-15T00:00:00Z',
+    updatedAt: '2025-01-15T00:00:00Z'
   },
   {
     id: 'saree-002',
@@ -72,8 +72,8 @@ export const products: Product[] = [
       description: 'Eco-friendly organic cotton saree with traditional handblock prints. Sustainable fashion choice.',
       keywords: ['organic saree', 'eco-friendly saree', 'handblock print', 'sustainable fashion']
     },
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-10T00:00:00Z'
+    createdAt: '2025-01-10T00:00:00Z',
+    updatedAt: '2025-01-10T00:00:00Z'
   },
   
   // Kurtis
@@ -110,8 +110,8 @@ export const products: Product[] = [
       description: 'Sustainable bamboo silk kurti with A-line silhouette. Comfortable and stylish eco-friendly fashion.',
       keywords: ['bamboo kurti', 'eco kurti', 'sustainable fashion', 'bamboo silk']
     },
-    createdAt: '2024-01-20T00:00:00Z',
-    updatedAt: '2024-01-20T00:00:00Z'
+    createdAt: '2025-01-20T00:00:00Z',
+    updatedAt: '2025-01-20T00:00:00Z'
   },
   
   // Jewellery
@@ -153,8 +153,8 @@ export const products: Product[] = [
       description: 'Authentic kundan choker set with polki diamonds and meenakari work. Perfect for weddings and festivals.',
       keywords: ['kundan jewellery', 'choker set', 'wedding jewellery', 'traditional jewellery']
     },
-    createdAt: '2024-01-12T00:00:00Z',
-    updatedAt: '2024-01-12T00:00:00Z'
+    createdAt: '2025-01-12T00:00:00Z',
+    updatedAt: '2025-01-12T00:00:00Z'
   },
   
   // Eco Collection
@@ -190,8 +190,8 @@ export const products: Product[] = [
       description: 'Eco-friendly handbag made from upcycled coffee husks. Waterproof and biodegradable sustainable fashion.',
       keywords: ['coffee husk bag', 'eco bag', 'sustainable accessories', 'biodegradable bag']
     },
-    createdAt: '2024-01-18T00:00:00Z',
-    updatedAt: '2024-01-18T00:00:00Z'
+    createdAt: '2025-01-18T00:00:00Z',
+    updatedAt: '2025-01-18T00:00:00Z'
   },
   
   // More products...
@@ -228,8 +228,8 @@ export const products: Product[] = [
       description: 'Traditional jhumka earrings with gold plating and pearl drops. Perfect for daily wear.',
       keywords: ['jhumka earrings', 'gold earrings', 'pearl earrings', 'traditional earrings']
     },
-    createdAt: '2024-01-08T00:00:00Z',
-    updatedAt: '2024-01-08T00:00:00Z'
+    createdAt: '2025-01-08T00:00:00Z',
+    updatedAt: '2025-01-08T00:00:00Z'
   }
 ];
 

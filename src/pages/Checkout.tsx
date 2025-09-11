@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Header } from '@/components/Layout/Header';
 import { Footer } from '@/components/Layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 const Checkout = () => {
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore();
   const navigate = useNavigate();
+  const formTopRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({
     // Personal Info
@@ -41,6 +42,7 @@ const Checkout = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showErrorSummary, setShowErrorSummary] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -83,7 +85,9 @@ const Checkout = () => {
 
   const handlePlaceOrder = () => {
     if (!validateForm()) {
+      setShowErrorSummary(true);
       toast.error('Please fill in all required fields correctly');
+      setTimeout(() => formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
       return;
     }
 
@@ -119,9 +123,19 @@ const Checkout = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" ref={formTopRef}>
             {/* Checkout Form */}
             <div className="lg:col-span-2 space-y-8">
+              {showErrorSummary && Object.keys(errors).length > 0 && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200">
+                  <p className="text-sm font-medium text-red-700 mb-1">There are {Object.keys(errors).length} errors to fix before placing your order.</p>
+                  <ul className="text-sm text-red-700 list-disc ml-5">
+                    {Object.entries(errors).map(([k, v]) => (
+                      <li key={k}>{v}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {/* Contact Information */}
               <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">

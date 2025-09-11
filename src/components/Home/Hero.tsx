@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, Suspense } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import blackfabricVideo from '@/assets/blackfabric.mp4';
 import { 
   Plane, 
   useTexture, 
@@ -332,10 +333,12 @@ const usePerformanceLevel = () => {
 };
 
 export const Hero = () => {
-  const [is3DEnabled, setIs3DEnabled] = useState(true);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const perfLevel = usePerformanceLevel();
+
+  // 3D is always enabled by default
+  const is3DEnabled = true;
   
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -353,17 +356,26 @@ export const Hero = () => {
   const scale = useTransform(smoothProgress, [0, 1], [1, 1.1]);
   const blur = useTransform(smoothProgress, [0, 1], ["blur(0px)", "blur(8px)"]);
 
-  // Performance-based 3D toggle
-  useEffect(() => {
-    const shouldEnable3D = perfLevel > 0 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setIs3DEnabled(shouldEnable3D);
-  }, [perfLevel]);
-
   return (
-    <section 
+    <section
       ref={containerRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden hero-gradient"
     >
+      {/* Video Background */}
+      <video
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        autoPlay
+        muted
+        loop
+        playsInline
+      >
+        <source src={blackfabricVideo} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+      {/* Video Overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/20 z-1" />
+
       {/* Animated Background Mesh */}
       <motion.div 
         className="absolute inset-0 mesh-gradient opacity-40 animate-mesh-flow"
@@ -372,21 +384,21 @@ export const Hero = () => {
       
       {/* Cinematic 3D Scene */}
       {is3DEnabled && (
-        <motion.div style={{ scale, opacity }}>
+        <motion.div style={{ scale, opacity }} className="relative z-5">
           <CinematicScene visible={true} perfLevel={perfLevel} />
         </motion.div>
       )}
       
       {/* Fallback Silk Texture */}
       {!is3DEnabled && (
-        <motion.div 
-          className="absolute inset-0 silk-texture opacity-70 animate-silk-wave"
+        <motion.div
+          className="absolute inset-0 silk-texture opacity-70 animate-silk-wave z-5"
           style={{ y, opacity, filter: blur }}
         />
       )}
 
       {/* Interactive Particles Background */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none z-5">
         {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
@@ -398,7 +410,7 @@ export const Hero = () => {
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               '--stagger': i,
-            } as any}
+            } as React.CSSProperties}
             animate={{
               y: [0, -30, 0],
               x: [0, Math.random() * 20 - 10, 0],
@@ -592,19 +604,6 @@ export const Hero = () => {
         </motion.div>
       </motion.div>
 
-      {/* Performance Debug (Development) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-4 right-4 text-xs bg-black/50 text-white px-3 py-2 rounded-lg font-mono">
-          <div>3D: {is3DEnabled ? 'ON' : 'OFF'}</div>
-          <div>Perf: {perfLevel === 2 ? 'HIGH' : perfLevel === 1 ? 'MED' : 'LOW'}</div>
-          <button
-            onClick={() => setIs3DEnabled(!is3DEnabled)}
-            className="mt-1 px-2 py-1 bg-white/20 rounded text-xs hover:bg-white/30"
-          >
-            Toggle 3D
-          </button>
-        </div>
-      )}
     </section>
   );
 };
