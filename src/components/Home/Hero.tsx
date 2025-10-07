@@ -373,8 +373,11 @@ export const Hero = () => {
         Your browser does not support the video tag.
       </video>
 
-      {/* Video Overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/20 z-1" />
+      {/* Global dim/blur overlay for readability */}
+      <div className="absolute inset-0 hero-contrast-overlay z-10" />
+
+      {/* Radial vignette focusing center content */}
+      <div className="absolute inset-0 hero-readability z-20" />
 
       {/* Animated Background Mesh */}
       <motion.div 
@@ -384,7 +387,7 @@ export const Hero = () => {
       
       {/* Cinematic 3D Scene */}
       {is3DEnabled && (
-        <motion.div style={{ scale, opacity }} className="relative z-5">
+        <motion.div style={{ scale, opacity }} className="relative z-0">
           <CinematicScene visible={true} perfLevel={perfLevel} />
         </motion.div>
       )}
@@ -429,7 +432,7 @@ export const Hero = () => {
 
       {/* Hero Content */}
       <motion.div 
-        className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto"
+        className="relative z-30 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto"
         style={{ y: useTransform(smoothProgress, [0, 1], ["0%", "30%"]) }}
       >
         {/* Brand Badge */}
@@ -448,13 +451,13 @@ export const Hero = () => {
 
         {/* Main Headline */}
         <motion.h1 
-          className="text-display text-5xl sm:text-6xl lg:text-8xl font-bold mb-8 leading-[0.9]"
+          className="text-display text-5xl sm:text-6xl lg:text-8xl font-bold mb-8 leading-[0.9] text-shadow-lg"
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.5 }}
         >
           <motion.span 
-            className="block text-luxury"
+            className="block text-luxury text-shadow-lg"
             animate={{ 
               backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
             }}
@@ -463,7 +466,7 @@ export const Hero = () => {
             Ethnic Elegance
           </motion.span>
           <motion.span 
-            className="block mt-2"
+            className="block mt-2 text-shadow-lg"
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
@@ -476,7 +479,7 @@ export const Hero = () => {
 
         {/* Description */}
         <motion.p 
-          className="text-xl sm:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed font-light"
+          className="text-xl sm:text-2xl text-white/90 drop-shadow-md mb-12 max-w-3xl mx-auto leading-relaxed font-light"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.9 }}
@@ -501,7 +504,7 @@ export const Hero = () => {
             <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform duration-300" />
           </Button>
           
-          <Button className="btn-glass w-full sm:w-auto text-lg px-10 py-5 group hover-glow">
+          <Button className="btn-secondary w-full sm:w-auto text-lg px-10 py-5 group hover-glow">
             <SparklesIcon className="mr-3 h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
             Explore Eco Collection
           </Button>
