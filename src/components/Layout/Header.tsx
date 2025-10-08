@@ -3,18 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ShoppingBag, Menu, X, User, Heart, MapPin, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import sareeIcon from '@/assets/icons/sareebg.png';
 import salwarIcon from '@/assets/icons/salwarbg.png';
 import kurtiIcon from '@/assets/icons/kurtisbg.png';
 import indoIcon from '@/assets/icons/indo-westernbg.png';
 import fabricsIcon from '@/assets/icons/fabricsbg.png';
-import { api } from '@/lib/api';
+import { useCartStore } from '@/store/cart';
 
 export const Header = () => {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [cartCount, setCartCount] = useState<number>(0);
+  // Derive live cart count from store for instant updates
+  const cartCount = useCartStore((s) => s.items.reduce((t, i) => t + i.quantity, 0));
   const [timeLeft, setTimeLeft] = useState<{d:number;h:number;m:number;s:number}>({ d: 0, h: 0, m: 0, s: 0 });
 
   useEffect(() => {
@@ -57,18 +59,7 @@ export const Header = () => {
     return () => clearInterval(iv);
   }, []);
 
-  useEffect(() => {
-    // Fetch cart count from backend
-    const load = async () => {
-      try {
-        const cart = await api<{ count: number }>(`/api/cart`);
-        setCartCount(cart.count || 0);
-      } catch (e) {
-        // noop in case backend not running yet
-      }
-    };
-    load();
-  }, []);
+  // Removed API fetch for cart badge; Zustand store keeps it reactive.
 
   const collections = [
     { name: 'Sarees', href: '/collections/sarees', featured: true, icon: sareeIcon },
@@ -184,17 +175,29 @@ export const Header = () => {
             {/* Right Actions */}
             <div className="flex items-center space-x-2 lg:space-x-4">
               {/* Search */}
-              <button className="p-2 rounded-xl hover:bg-muted transition-colors">
+              <button
+                className="p-2 rounded-xl hover:bg-muted transition-colors"
+                aria-label="Search"
+                onClick={() => navigate('/shop')}
+              >
                 <Search className="h-5 w-5" />
               </button>
 
               {/* User Account */}
-              <button className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors">
+              <button
+                className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors"
+                aria-label="Account"
+                onClick={() => navigate('/contact')}
+              >
                 <User className="h-5 w-5" />
               </button>
 
               {/* Wishlist */}
-              <button className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors relative" aria-label="Wishlist with 3 items">
+              <button
+                className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors relative"
+                aria-label="Wishlist"
+                onClick={() => navigate('/shop')}
+              >
                 <Heart className="h-5 w-5" />
                 <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent text-accent-foreground text-[10px] leading-none px-1 border-2 border-background shadow-sm">
                   3
@@ -202,7 +205,11 @@ export const Header = () => {
               </button>
 
               {/* Cart */}
-              <button className="p-2 rounded-xl hover:bg-muted transition-colors relative" aria-label={`Cart with ${cartCount} items`}>
+              <button
+                className="p-2 rounded-xl hover:bg-muted transition-colors relative"
+                aria-label={`Cart with ${cartCount} items`}
+                onClick={() => navigate('/cart')}
+              >
                 <ShoppingBag className="h-5 w-5" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary text-primary-foreground text-[10px] leading-none px-1 border-2 border-background shadow-sm">

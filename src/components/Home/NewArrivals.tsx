@@ -1,113 +1,58 @@
 import { useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Heart, ShoppingBag, Eye, Star } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { products as allProducts } from '@/data/products';
+import { useCartStore } from '@/store/cart';
+import { toast } from 'sonner';
 
-const newArrivals = [
-  {
-    id: 1,
-    name: 'Banarasi Silk Saree',
-    price: 8999,
-    originalPrice: 12999,
-    image: '/api/placeholder/300/400',
-    rating: 4.8,
-    reviews: 124,
-    tag: 'Handwoven',
-    inStock: true,
-    category: 'Sarees'
-  },
-  {
-    id: 2,
-    name: 'Chanderi Cotton Kurti',
-    price: 2499,
-    originalPrice: 3499,
-    image: '/api/placeholder/300/400',
-    rating: 4.6,
-    reviews: 89,
-    tag: 'Limited Edition',
-    inStock: true,
-    category: 'Kurtis'
-  },
-  {
-    id: 3,
-    name: 'Bamboo Fiber Dupatta',
-    price: 1299,
-    originalPrice: null,
-    image: '/api/placeholder/300/400',
-    rating: 4.9,
-    reviews: 56,
-    tag: 'Eco-Friendly',
-    inStock: true,
-    category: 'Eco Collection'
-  },
-  {
-    id: 4,
-    name: 'Kundan Necklace Set',
-    price: 3999,
-    originalPrice: 5499,
-    image: '/api/placeholder/300/400',
-    rating: 4.7,
-    reviews: 203,
-    tag: 'Bestseller',
-    inStock: false,
-    category: 'Jewellery'
-  },
-  {
-    id: 5,
-    name: 'Ikat Print Palazzo Set',
-    price: 3299,
-    originalPrice: 4299,
-    image: '/api/placeholder/300/400',
-    rating: 4.5,
-    reviews: 78,
-    tag: 'New',
-    inStock: true,
-    category: 'Indo-Western'
-  },
-  {
-    id: 6,
-    name: 'Coffee Husk Handbag',
-    price: 1899,
-    originalPrice: null,
-    image: '/api/placeholder/300/400',
-    rating: 4.8,
-    reviews: 34,
-    tag: 'Sustainable',
-    inStock: true,
-    category: 'Accessories'
-  },
-  {
-    id: 7,
-    name: 'Kalamkari Dress Material',
-    price: 2199,
-    originalPrice: 2999,
-    image: '/api/placeholder/300/400',
-    rating: 4.6,
-    reviews: 92,
-    tag: 'Handblock',
-    inStock: true,
-    category: 'Fabrics'
-  },
-  {
-    id: 8,
-    name: 'Temple Jewellery Earrings',
-    price: 1599,
-    originalPrice: 2199,
-    image: '/api/placeholder/300/400',
-    rating: 4.9,
-    reviews: 167,
-    tag: 'Traditional',
-    inStock: true,
-    category: 'Jewellery'
-  }
-];
+type NAItem = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number | null;
+  image: string;
+  rating: number;
+  reviews: number;
+  tag: string;
+  inStock: boolean;
+  category: string;
+};
+
+const toTag = (badges: string[] = []): string => {
+  if (badges.includes('eco-friendly')) return 'Eco-Friendly';
+  if (badges.includes('bestseller')) return 'Bestseller';
+  if (badges.includes('new-arrival')) return 'New';
+  if (badges.includes('handcrafted')) return 'Handcrafted';
+  return 'New';
+};
+
+const hasRealImage = (imgs?: string[]) => !!imgs && imgs.length > 0 && !imgs[0].includes('/api/placeholder');
+
+const newArrivals: NAItem[] = allProducts
+  .filter(p => hasRealImage(p.images))
+  .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+  .slice(0, 8)
+  .map(p => ({
+    id: p.id,
+    name: p.title,
+    price: p.price,
+    originalPrice: p.compareAtPrice ?? null,
+    image: p.images[0],
+    rating: p.reviews.rating,
+    reviews: p.reviews.count,
+    tag: toTag(p.badges),
+    inStock: (p.stock ?? 0) > 0,
+    category: p.subcategory || p.category,
+  }));
 
 export const NewArrivals = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { addItem, setCartOpen } = useCartStore();
 
   const itemsToShow = 4;
   const maxIndex = Math.max(0, newArrivals.length - itemsToShow);
@@ -120,7 +65,15 @@ export const NewArrivals = () => {
     setCurrentIndex(newIndex);
   };
 
-  const toggleWishlist = (productId: number) => {
+  const handleQuickAdd = (productId: string) => {
+    const full = allProducts.find(p => p.id === productId);
+    if (!full) return;
+    addItem(full, 1);
+    setCartOpen(true);
+    toast.success('Added to cart!');
+  };
+
+  const toggleWishlist = (productId: string) => {
     setWishlist(prev => 
       prev.includes(productId) 
         ? prev.filter(id => id !== productId)
@@ -242,10 +195,11 @@ export const NewArrivals = () => {
                       </button>
                     </div>
 
-                    <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
+                    <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 z-10">
                       <Button 
                         className="w-full btn-primary"
                         disabled={!product.inStock}
+                        onClick={(e) => { e.stopPropagation(); if (product.inStock) handleQuickAdd(product.id); }}
                       >
                         <ShoppingBag className="h-4 w-4 mr-2" />
                         {product.inStock ? 'Add to Cart' : 'Out of Stock'}

@@ -3,89 +3,61 @@ import { Star, ShoppingBag, Heart, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { products as allProducts } from '@/data/products';
+import { useCartStore } from '@/store/cart';
+import { toast } from 'sonner';
 
-const bestsellers = [
-  {
-    id: 1,
-    name: 'Royal Banarasi Silk Saree',
-    price: 15999,
-    originalPrice: 22999,
-    image: '/api/placeholder/300/400',
-    rating: 4.9,
-    reviews: 342,
-    sales: '1.2k+ sold',
-    tag: 'Royal Collection',
-    quickView: true,
-    category: 'Sarees'
-  },
-  {
-    id: 2,
-    name: 'Heritage Kundan Choker',
-    price: 4999,
-    originalPrice: 7499,
-    image: '/api/placeholder/300/400',
-    rating: 4.8,
-    reviews: 456,
-    sales: '800+ sold',
-    tag: 'Heritage',
-    quickView: true,
-    category: 'Jewellery'
-  },
-  {
-    id: 3,
-    name: 'Bamboo Silk Kurti Set',
-    price: 3299,
-    originalPrice: 4599,
-    image: '/api/placeholder/300/400',
-    rating: 4.7,
-    reviews: 178,
-    sales: '600+ sold',
-    tag: 'Eco-Premium',
-    quickView: true,
-    category: 'Eco Collection'
-  },
-  {
-    id: 4,
-    name: 'Chanderi Palazzo Set',
-    price: 2899,
-    originalPrice: 3899,
-    image: '/api/placeholder/300/400',
-    rating: 4.6,
-    reviews: 234,
-    sales: '500+ sold',
-    tag: 'Comfort Fit',
-    quickView: true,
-    category: 'Indo-Western'
-  },
-  {
-    id: 5,
-    name: 'Temple Jewellery Suite',
-    price: 6999,
-    originalPrice: 9999,
-    image: '/api/placeholder/300/400',
-    rating: 4.9,
-    reviews: 167,
-    sales: '400+ sold',
-    tag: 'Bridal Choice',
-    quickView: true,
-    category: 'Jewellery'
-  },
-  {
-    id: 6,
-    name: 'Handblock Print Dress',
-    price: 2199,
-    originalPrice: 2999,
-    image: '/api/placeholder/300/400',
-    rating: 4.5,
-    reviews: 89,
-    sales: '350+ sold',
-    tag: 'Artisan Made',
-    quickView: true,
-    category: 'Indo-Western'
-  }
-];
+type BSItem = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number | null;
+  image: string;
+  rating: number;
+  reviews: number;
+  sales?: string;
+  tag: string;
+  category: string;
+};
+
+const hasRealImage = (imgs?: string[]) => !!imgs && imgs.length > 0 && !imgs[0].includes('/api/placeholder');
+
+const toTag = (badges: string[] = []): string => {
+  if (badges.includes('bestseller')) return 'Bestseller';
+  if (badges.includes('eco-friendly')) return 'Eco-Friendly';
+  if (badges.includes('new-arrival')) return 'New';
+  return 'Trending';
+};
+
+const bestsellers: BSItem[] = allProducts
+  .filter(p => hasRealImage(p.images))
+  .filter(p => p.badges?.includes('bestseller'))
+  .sort((a, b) => b.reviews.rating - a.reviews.rating)
+  .slice(0, 6)
+  .map(p => ({
+    id: p.id,
+    name: p.title,
+    price: p.price,
+    originalPrice: p.compareAtPrice ?? null,
+    image: p.images[0],
+    rating: p.reviews.rating,
+    reviews: p.reviews.count,
+    sales: undefined,
+    tag: toTag(p.badges),
+    category: p.subcategory || p.category,
+  }));
 
 export const Bestsellers = () => {
+  const { addItem, setCartOpen } = useCartStore();
+
+  const handleQuickAdd = (id: string) => {
+    const full = allProducts.find(p => p.id === id);
+    if (!full) return;
+    addItem(full, 1);
+    setCartOpen(true);
+    toast.success('Added to cart!');
+  };
+
   return (
     <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -147,7 +119,7 @@ export const Bestsellers = () => {
                   </div>
 
                   <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-                    <Button className="w-full btn-primary">
+                    <Button className="w-full btn-primary" onClick={(e) => { e.stopPropagation(); handleQuickAdd(product.id); }}>
                       <ShoppingBag className="h-4 w-4 mr-2" />
                       Quick Add to Cart
                     </Button>
@@ -159,9 +131,11 @@ export const Bestsellers = () => {
                   <Badge className="bg-accent text-accent-foreground">
                     {product.tag}
                   </Badge>
-                  <Badge className="bg-green-100 text-green-700">
-                    {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                  </Badge>
+                  {product.originalPrice && (
+                    <Badge className="bg-green-100 text-green-700">
+                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Sales Badge */}
@@ -205,9 +179,11 @@ export const Bestsellers = () => {
                   <span className="font-bold text-xl text-foreground">
                     ₹{product.price.toLocaleString()}
                   </span>
-                  <span className="text-sm text-muted-foreground line-through">
-                    ₹{product.originalPrice.toLocaleString()}
-                  </span>
+                  {product.originalPrice && (
+                    <span className="text-sm text-muted-foreground line-through">
+                      ₹{product.originalPrice.toLocaleString()}
+                    </span>
+                  )}
                 </div>
 
                 {/* Social Proof */}
