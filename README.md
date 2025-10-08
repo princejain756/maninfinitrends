@@ -101,6 +101,16 @@ npm run dev
 
 The frontend reads `VITE_API_BASE_URL` and shows a real cart count in the header.
 
+### Razorpay (optional)
+
+- Add your key to `.env` or `.env.local`:
+
+```
+VITE_RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
+```
+
+- If the key is missing, checkout will gracefully run in demo mode.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/41b76f9e-90b5-4948-8ef8-3823deedb0e9) and click on Share -> Publish.

@@ -6,19 +6,22 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/store/cart';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Truck, Shield, MapPin, User } from 'lucide-react';
+import { CreditCard, Shield, MapPin, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useUserStore } from '@/store/user';
+import { startRazorpayPayment } from '@/lib/razorpay';
 
 const Checkout = () => {
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore();
+  const createAccount = useUserStore((s) => s.createAccount);
   const navigate = useNavigate();
   const formTopRef = useRef<HTMLDivElement>(null);
   
+  const [mode, setMode] = useState<'guest' | 'account'>('guest');
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: '',
@@ -34,7 +37,7 @@ const Checkout = () => {
     pincode: '',
     
     // Payment
-    paymentMethod: 'card',
+    paymentMethod: 'razorpay',
     saveInfo: false,
     
     // Billing same as shipping
@@ -69,7 +72,7 @@ const Checkout = () => {
       newErrors.email = 'Email is invalid';
     }
     
-    // Phone validation
+    // Phone validation (India only)
     if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
       newErrors.phone = 'Phone number must be 10 digits';
     }
@@ -83,7 +86,9 @@ const Checkout = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handlePlaceOrder = () => {
+  const computeCODFee = (amount: number) => Math.min(250, Math.max(100, Math.round(amount * 0.10)));
+
+  const handlePlaceOrder = async () => {
     if (!validateForm()) {
       setShowErrorSummary(true);
       toast.error('Please fill in all required fields correctly');
@@ -91,10 +96,48 @@ const Checkout = () => {
       return;
     }
 
-    // Simulate payment processing
-    toast.success('Order placed successfully!');
-    clearCart();
-    navigate('/');
+    // If user chose to create account, persist minimal profile
+    if (mode === 'account') {
+      createAccount({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        apartment: formData.apartment,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+      });
+      toast.success('Account created for faster checkout');
+    }
+
+    // Payment: Razorpay for online methods, simple success for COD.
+    if (formData.paymentMethod === 'cod') {
+      toast.success('Order placed with Cash on Delivery');
+      clearCart();
+      navigate('/');
+      return;
+    }
+
+    const subtotalNow = getTotalPrice();
+    const deliveryNow = formData.paymentMethod === 'cod' ? computeCODFee(subtotalNow) : 0;
+    const paisa = (subtotalNow + deliveryNow) * 100;
+    const res = await startRazorpayPayment({
+      amount: Math.round(paisa),
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      contact: formData.phone,
+      notes: { city: formData.city, state: formData.state, pincode: formData.pincode },
+    });
+
+    if (res.status === 'success' || res.status === 'demo') {
+      toast.success('Payment successful');
+      clearCart();
+      navigate('/');
+    } else if (res.status === 'cancelled') {
+      toast.message('Payment cancelled');
+    }
   };
 
   if (items.length === 0) {
@@ -102,9 +145,10 @@ const Checkout = () => {
     return null;
   }
 
-  const shippingCost = getTotalPrice() >= 999 ? 0 : 99;
-  const taxAmount = Math.round(getTotalPrice() * 0.05);
-  const finalTotal = getTotalPrice() + shippingCost;
+  const subtotal = getTotalPrice();
+  const deliveryCharge = formData.paymentMethod === 'cod' ? computeCODFee(subtotal) : 0;
+  const taxAmount = Math.round(subtotal * 0.05);
+  const finalTotal = subtotal + deliveryCharge;
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,6 +170,21 @@ const Checkout = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" ref={formTopRef}>
             {/* Checkout Form */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Mode toggle: Guest vs Create Account */}
+              <Card className="p-2 flex gap-2 bg-muted/40">
+                <button
+                  className={`flex-1 py-2 rounded-md text-sm ${mode === 'guest' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                  onClick={() => setMode('guest')}
+                >
+                  Guest Checkout
+                </button>
+                <button
+                  className={`flex-1 py-2 rounded-md text-sm ${mode === 'account' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                  onClick={() => setMode('account')}
+                >
+                  Create Account & Checkout
+                </button>
+              </Card>
               {showErrorSummary && Object.keys(errors).length > 0 && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-200">
                   <p className="text-sm font-medium text-red-700 mb-1">There are {Object.keys(errors).length} errors to fix before placing your order.</p>
@@ -185,14 +244,17 @@ const Checkout = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      placeholder="10-digit mobile number"
-                      className={errors.phone ? 'border-destructive' : ''}
-                    />
+                    <Label htmlFor="phone">Phone Number (India) *</Label>
+                    <div className={`flex items-center rounded-md border ${errors.phone ? 'border-destructive' : 'border-input'} bg-background`}> 
+                      <span className="px-3 text-sm text-muted-foreground">+91</span>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0,10))}
+                        placeholder="10-digit mobile number"
+                        className="border-0 focus-visible:ring-0"
+                      />
+                    </div>
                     {errors.phone && (
                       <p className="text-sm text-destructive mt-1">{errors.phone}</p>
                     )}
@@ -208,6 +270,14 @@ const Checkout = () => {
                 </div>
                 
                 <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="px-2 py-0.5 rounded bg-muted">India-only checkout</span>
+                    <span>We currently ship within India.</span>
+                  </div>
+                  <div>
+                    <Label>Country</Label>
+                    <div className="flex h-10 items-center px-3 rounded-md border border-input bg-muted/40 text-sm">India</div>
+                  </div>
                   <div>
                     <Label htmlFor="address">Address *</Label>
                     <Input
@@ -290,72 +360,46 @@ const Checkout = () => {
                   <h2 className="text-xl font-semibold">Payment Method</h2>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border rounded-lg p-4 cursor-pointer hover:border-primary">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="card"
-                          name="payment"
-                          value="card"
-                          checked={formData.paymentMethod === 'card'}
-                          onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                          className="text-primary"
-                        />
-                        <Label htmlFor="card" className="cursor-pointer">Credit/Debit Card</Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">Visa, Mastercard, RuPay</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('paymentMethod', 'razorpay')}
+                    className={`border rounded-lg p-4 text-left hover:border-primary ${formData.paymentMethod === 'razorpay' ? 'border-primary ring-1 ring-primary/30' : ''}`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="razorpay"
+                        name="payment"
+                        value="razorpay"
+                        checked={formData.paymentMethod === 'razorpay'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                        className="text-primary"
+                      />
+                      <Label htmlFor="razorpay" className="cursor-pointer">Razorpay (Online)</Label>
                     </div>
-                    
-                    <div className="border rounded-lg p-4 cursor-pointer hover:border-primary">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="upi"
-                          name="payment"
-                          value="upi"
-                          checked={formData.paymentMethod === 'upi'}
-                          onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                          className="text-primary"
-                        />
-                        <Label htmlFor="upi" className="cursor-pointer">UPI</Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">Pay with your UPI ID</p>
+                    <p className="text-sm text-muted-foreground mt-1">Cards (Visa/Mastercard/RuPay), UPI, NetBanking, Wallets</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('paymentMethod', 'cod')}
+                    className={`border rounded-lg p-4 text-left hover:border-primary ${formData.paymentMethod === 'cod' ? 'border-primary ring-1 ring-primary/30' : ''}`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="cod"
+                        name="payment"
+                        value="cod"
+                        checked={formData.paymentMethod === 'cod'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                        className="text-primary"
+                      />
+                      <Label htmlFor="cod" className="cursor-pointer">Cash on Delivery</Label>
                     </div>
-                    
-                    <div className="border rounded-lg p-4 cursor-pointer hover:border-primary">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="netbanking"
-                          name="payment"
-                          value="netbanking"
-                          checked={formData.paymentMethod === 'netbanking'}
-                          onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                          className="text-primary"
-                        />
-                        <Label htmlFor="netbanking" className="cursor-pointer">Net Banking</Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">All major banks</p>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 cursor-pointer hover:border-primary">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="cod"
-                          name="payment"
-                          value="cod"
-                          checked={formData.paymentMethod === 'cod'}
-                          onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                          className="text-primary"
-                        />
-                        <Label htmlFor="cod" className="cursor-pointer">Cash on Delivery</Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">Pay when you receive</p>
-                    </div>
-                  </div>
+                    <p className="text-sm text-muted-foreground mt-1">Pay when you receive</p>
+                  </button>
                 </div>
               </Card>
             </div>
@@ -391,13 +435,13 @@ const Checkout = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span>Subtotal ({getTotalItems()} items)</span>
-                    <span>₹{getTotalPrice().toLocaleString()}</span>
+                    <span>₹{subtotal.toLocaleString()}</span>
                   </div>
                   
                   <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span className={shippingCost === 0 ? 'text-green-600' : ''}>
-                      {shippingCost === 0 ? 'Free' : `₹${shippingCost}`}
+                    <span>Delivery {formData.paymentMethod === 'cod' ? '(COD Fee)' : ''}</span>
+                    <span className={formData.paymentMethod !== 'cod' ? 'text-green-600' : ''}>
+                      {formData.paymentMethod === 'cod' ? `₹${deliveryCharge.toLocaleString()}` : 'Free'}
                     </span>
                   </div>
                   

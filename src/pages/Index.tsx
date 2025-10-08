@@ -10,6 +10,7 @@ import { Testimonials } from '@/components/Home/Testimonials';
 import { Newsletter } from '@/components/Home/Newsletter';
 import { InstagramFeed } from '@/components/Home/InstagramFeed';
 import SeoHead from '@/components/Seo/SeoHead';
+import { CartSidebar } from '@/components/Cart/CartSidebar';
 
 const Index = () => {
   return (
@@ -27,6 +28,8 @@ const Index = () => {
         <Newsletter />
         <InstagramFeed />
       </main>
+      {/* Global cart for Home so quick-add opens immediately */}
+      <CartSidebar />
       <Footer />
     </div>
   );
