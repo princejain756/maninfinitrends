@@ -3,6 +3,7 @@ import { ArrowRight, Leaf, Sparkles, Crown, Shirt } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { products } from '@/data/products';
+import { Link } from 'react-router-dom';
 
 const ecoPreview = products.find(p => p.category === 'eco' && p.images?.length);
 
@@ -84,15 +85,16 @@ export const FeaturedCollections = () => {
                 ease: "easeOut"
               }}
               whileHover={{ y: -8 }}
-              className="group cursor-pointer"
+              className="cursor-pointer"
             >
+              <Link to={collection.href} className="block group" aria-label={`Explore ${collection.title}`}>
               <Card className="card-premium overflow-hidden h-full">
                 {/* Image Container */}
                 <div className="relative aspect-[4/5] overflow-hidden">
                   <div 
                     className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 transition-transform duration-700 group-hover:scale-110"
                     style={{
-                      backgroundImage: `url(${collection.image})`,
+                      backgroundImage: `url("${collection.image}")`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
@@ -138,6 +140,7 @@ export const FeaturedCollections = () => {
                   </p>
                 </div>
               </Card>
+              </Link>
             </motion.div>
           );
         })}
