@@ -2,6 +2,9 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Leaf, Sparkles, Crown, Shirt } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { products } from '@/data/products';
+
+const ecoPreview = products.find(p => p.category === 'eco' && p.images?.length);
 
 const collections = [
   {
@@ -36,9 +39,9 @@ const collections = [
   },
   {
     id: 'eco',
-    title: 'Eco Collection',
-    description: 'Sustainable fashion from bamboo, coffee husk & rice husk',
-    image: '/api/placeholder/400/500',
+    title: 'Eco Home & Living',
+    description: 'Planters, tableware and drinkware made from bio-composites',
+    image: ecoPreview?.images?.[0] || '/api/placeholder/400/500',
     icon: Leaf,
     badge: 'Eco-Friendly',
     color: 'secondary',

@@ -164,8 +164,8 @@ export const Header = () => {
               <a href="/jewellery" className="font-medium text-foreground hover:text-accent transition-colors">
                 Jewellery
               </a>
-              <a href="/repairs" className="font-medium text-foreground hover:text-primary transition-colors">
-                Repairs
+              <a href="/services" className="font-medium text-foreground hover:text-primary transition-colors">
+                Services
               </a>
               <a href="/blog" className="font-medium text-foreground hover:text-secondary transition-colors">
                 Blog
@@ -289,8 +289,8 @@ export const Header = () => {
                 <a href="/jewellery" className="block py-3 font-medium text-foreground hover:text-accent transition-colors">
                   Jewellery
                 </a>
-                <a href="/repairs" className="block py-3 font-medium text-foreground hover:text-primary transition-colors">
-                  Repairs & Restoration
+                <a href="/services" className="block py-3 font-medium text-foreground hover:text-primary transition-colors">
+                  Services & Restoration
                 </a>
                 <a href="/blog" className="block py-3 font-medium text-foreground hover:text-secondary transition-colors">
                   Fashion Blog

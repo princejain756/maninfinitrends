@@ -31,11 +31,11 @@ export const RepairsTeaser = () => {
           </div>
           
           <h2 className="text-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-foreground mb-6">
-            Repairs & Restoration
+            Services & Restoration
           </h2>
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
             Give your cherished pieces new life with our expert repair and restoration services. 
-            Our skilled artisans handle everything from delicate saree alterations to intricate jewellery repairs.
+            Our skilled artisans handle everything from delicate saree alterations to intricate jewellery repair services.
           </p>
 
           {/* Services List */}
@@ -58,7 +58,7 @@ export const RepairsTeaser = () => {
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4">
             <Button className="btn-primary">
-              Book a Repair
+              Book a Service
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button variant="outline" className="bg-card/80 backdrop-blur-sm">

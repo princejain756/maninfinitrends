@@ -1,4 +1,9 @@
 import { Product, Collection, Category } from '@/types/product';
+import { generatedProducts } from './new_products.generated';
+
+// Helper: choose eco products for dedicated collection
+const ecoProductIds: string[] = generatedProducts.map(p => p.id);
+const ecoCollectionImage: string = generatedProducts[0]?.images?.[0] || '/api/placeholder/800/600';
 
 export const products: Product[] = [
   // Bags & Accessories
@@ -507,7 +512,8 @@ export const products: Product[] = [
     },
     createdAt: '2025-01-08T00:00:00Z',
     updatedAt: '2025-01-08T00:00:00Z'
-  }
+  },
+  ...generatedProducts
 ];
 
 export const collections: Collection[] = [
@@ -525,14 +531,14 @@ export const collections: Collection[] = [
   },
   {
     id: 'eco-collection',
-    title: 'Eco Collection',
+    title: 'Eco Home & Living',
     handle: 'eco-collection',
-    description: 'Sustainable fashion made from eco-friendly materials',
-    image: '/api/placeholder/800/600',
-    productIds: ['saree-002', 'kurti-001', 'eco-001'],
+    description: 'Sustainable homeware crafted from rice husk and bamboo fibers — planters, tableware, drinkware and more.',
+    image: ecoCollectionImage,
+    productIds: ecoProductIds.slice(0, 24),
     seo: {
-      title: 'Eco Collection - Sustainable Fashion - Maninfini Trends',
-      description: 'Shop our eco-friendly collection made from sustainable materials like bamboo, organic cotton, and recycled fibers.'
+      title: 'Eco Home & Living — Sustainable Bio-Composite Collection - Maninfini Trends',
+      description: 'Explore eco-friendly planters, tableware, and homeware made from rice husk and bamboo fiber bio-composites.'
     }
   }
 ];
@@ -562,5 +568,68 @@ export const categories: Category[] = [
     description: 'Exclusive imitation jewellery collection',
     image: '/api/placeholder/400/300',
     attributes: ['material', 'plating', 'stones', 'occasion', 'weight']
+  },
+  // Eco Home & Living
+  {
+    id: 'eco',
+    title: 'Eco Home & Living',
+    handle: 'eco',
+    description: 'Sustainable homeware made from bio-composites',
+    image: '/api/placeholder/400/300',
+    attributes: ['material', 'care', 'eco']
+  },
+  {
+    id: 'planters',
+    title: 'Planters',
+    handle: 'planters',
+    description: 'Eco-friendly planters and pots',
+    image: '/api/placeholder/400/300',
+    parentId: 'eco',
+    attributes: ['material', 'size', 'finish', 'care']
+  },
+  {
+    id: 'tableware',
+    title: 'Tableware',
+    handle: 'tableware',
+    description: 'Plates, bowls and serving essentials',
+    image: '/api/placeholder/400/300',
+    parentId: 'eco',
+    attributes: ['material', 'care', 'finish']
+  },
+  {
+    id: 'drinkware',
+    title: 'Drinkware',
+    handle: 'drinkware',
+    description: 'Cups, tumblers and bottles',
+    image: '/api/placeholder/400/300',
+    parentId: 'eco',
+    attributes: ['material', 'care', 'capacity']
+  },
+  {
+    id: 'cutlery',
+    title: 'Cutlery',
+    handle: 'cutlery',
+    description: 'Eco-friendly spoons, forks and more',
+    image: '/api/placeholder/400/300',
+    parentId: 'eco',
+    attributes: ['material', 'care']
+  },
+  {
+    id: 'storage',
+    title: 'Storage',
+    handle: 'storage',
+    description: 'Boxes, baskets and organizers',
+    image: '/api/placeholder/400/300',
+    parentId: 'eco',
+    attributes: ['material', 'capacity', 'care']
+  },
+  {
+    id: 'kitchenware',
+    title: 'Kitchenware',
+    handle: 'kitchenware',
+    description: 'Boards, strainers and prep tools',
+    image: '/api/placeholder/400/300',
+    parentId: 'eco',
+    attributes: ['material', 'care']
   }
 ];

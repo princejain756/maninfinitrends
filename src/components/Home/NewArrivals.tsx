@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Heart, ShoppingBag, Eye, Star } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { products as allProducts } from '@/data/products';
 import { useCartStore } from '@/store/cart';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 type NAItem = {
   id: string;
@@ -19,6 +20,7 @@ type NAItem = {
   tag: string;
   inStock: boolean;
   category: string;
+  handle: string;
 };
 
 const toTag = (badges: string[] = []): string => {
@@ -46,6 +48,7 @@ const newArrivals: NAItem[] = allProducts
     tag: toTag(p.badges),
     inStock: (p.stock ?? 0) > 0,
     category: p.subcategory || p.category,
+    handle: p.handle,
   }));
 
 export const NewArrivals = () => {
@@ -53,6 +56,7 @@ export const NewArrivals = () => {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { addItem, setCartOpen } = useCartStore();
+  const navigate = useNavigate();
 
   const itemsToShow = 4;
   const maxIndex = Math.max(0, newArrivals.length - itemsToShow);
@@ -63,6 +67,11 @@ export const NewArrivals = () => {
       : Math.min(maxIndex, currentIndex + 1);
     
     setCurrentIndex(newIndex);
+  };
+
+  const handleViewProduct = (e: MouseEvent<HTMLButtonElement>, handle: string) => {
+    e.stopPropagation();
+    navigate(`/product/${handle}`);
   };
 
   const handleQuickAdd = (productId: string) => {
@@ -190,8 +199,13 @@ export const NewArrivals = () => {
                           }`} 
                         />
                       </button>
-                      <button className="w-8 h-8 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors">
-                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      <button
+                        onClick={(e) => handleViewProduct(e, product.handle)}
+                        className="w-9 h-9 rounded-full bg-white/90 text-gray-900 shadow-sm flex items-center justify-center hover:bg-white transition-colors border border-gray-100"
+                        aria-label="View product details"
+                        title="View details"
+                      >
+                        <Eye className="h-4 w-4" />
                       </button>
                     </div>
 
