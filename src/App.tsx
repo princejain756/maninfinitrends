@@ -54,7 +54,9 @@ const App = () => (
           <Route path="/care" element={<Care />} />
           <Route path="/bulk" element={<Bulk />} />
           <Route path="/partner" element={<Partner />} />
-          <Route path="/repairs" element={<Repairs />} />
+          <Route path="/services" element={<Repairs />} />
+          {/* Backward compatibility */}
+          <Route path="/repairs" element={<CategoryRedirect to="/services" />} />
           {/* Policies */}
           <Route path="/shipping-returns" element={<ShippingReturns />} />
           <Route path="/privacy" element={<Privacy />} />
