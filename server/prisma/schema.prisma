@@ -136,13 +136,15 @@ model Order {
   status      OrderStatus  @default(PENDING)
   totalCents  Int          @default(0)
   currency    String       @default("INR")
+  shippingAddressId String? @db.Uuid
+  billingAddressId  String? @db.Uuid
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   items       OrderItem[]
   payments    Payment[]
-  shipping    Address?
-  billing     Address?
+  shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id])
 }
 
 model OrderItem {
@@ -172,8 +174,6 @@ model Address {
   id         String  @id @default(uuid()) @db.Uuid
   user       User?   @relation(fields: [userId], references: [id])
   userId     String? @db.Uuid
-  order      Order?  @relation(fields: [orderId], references: [id])
-  orderId    String? @db.Uuid
   name       String
   line1      String
   line2      String?
@@ -182,6 +182,9 @@ model Address {
   postalCode String
   country    String  @default("IN")
   phone      String?
+
+  shippingOrders Order[] @relation("ShippingAddress")
+  billingOrders  Order[] @relation("BillingAddress")
 }
 
 enum CartStatus {
@@ -206,4 +209,3 @@ enum PaymentStatus {
   FAILED
   REFUNDED
 }
-
