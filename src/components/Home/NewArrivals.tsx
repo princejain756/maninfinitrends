@@ -178,7 +178,7 @@ export const NewArrivals = () => {
                   <div 
                     className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 transition-transform duration-500 group-hover:scale-110"
                     style={{
-                      backgroundImage: `url(${product.image})`,
+                      backgroundImage: `url("${product.image}")`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}

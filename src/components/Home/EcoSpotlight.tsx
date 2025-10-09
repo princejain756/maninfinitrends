@@ -3,6 +3,7 @@ import { Leaf, Coffee, Wheat, ArrowRight, CheckCircle, Star } from 'lucide-react
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const ecoMaterials = [
   {
@@ -14,7 +15,8 @@ const ecoMaterials = [
     color: 'secondary',
     features: ['100% Biodegradable', 'Antibacterial', 'UV Resistant', 'Moisture Wicking'],
     impact: 'Grows 30x faster than cotton',
-    href: '/eco-collection/bamboo'
+    // Minimal UX: send to shop filtered by eco + bamboo search
+    href: '/shop/eco?q=bamboo'
   },
   {
     id: 'coffee',
@@ -25,7 +27,7 @@ const ecoMaterials = [
     color: 'accent',
     features: ['Upcycled Waste', 'Natural Aroma', 'Durable', 'Water Resistant'],
     impact: 'Reduces 1000kg waste per year',
-    href: '/eco-collection/coffee-husk'
+    href: '/shop/eco?q=coffee%20husk'
   },
   {
     id: 'rice',
@@ -36,7 +38,7 @@ const ecoMaterials = [
     color: 'primary',
     features: ['Zero Waste', 'Natural Finish', 'Heat Resistant', 'Long Lasting'],
     impact: 'Prevents 500kg farm burning',
-    href: '/eco-collection/rice-husk'
+    href: '/shop/eco?q=rice%20husk'
   }
 ];
 
@@ -132,12 +134,15 @@ export const EcoSpotlight = () => {
                   </div>
 
                   {/* CTA */}
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    asChild
+                    variant="outline"
                     className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                   >
-                    Explore Collection
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    <Link to={material.href} aria-label={`Explore ${material.title}`}>
+                      Explore Collection
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Link>
                   </Button>
                 </div>
               </Card>
@@ -163,12 +168,16 @@ export const EcoSpotlight = () => {
             Together, we're creating a more eco-conscious future for fashion.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button className="btn-secondary">
+            <Button asChild className="btn-secondary">
+              <Link to="/collections/eco-collection" aria-label="View Eco Collection">
               View Full Eco Collection
               <Leaf className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
-            <Button variant="outline" className="bg-card/80 backdrop-blur-sm">
-              Learn About Our Process
+            <Button asChild variant="outline" className="bg-card/80 backdrop-blur-sm">
+              <Link to="/about" aria-label="Learn About Our Process">
+                Learn About Our Process
+              </Link>
             </Button>
           </div>
         </div>
