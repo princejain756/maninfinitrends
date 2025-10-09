@@ -30,6 +30,9 @@ import Collection from "./pages/Collections/Collection";
 import CategoryRedirect from "./pages/Redirects/CategoryRedirect";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import Bamboo from "./pages/Eco/Bamboo";
+import CoffeeHusk from "./pages/Eco/CoffeeHusk";
+import RiceHusk from "./pages/Eco/RiceHusk";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +68,10 @@ const App = () => (
           <Route path="/cookies" element={<Cookies />} />
           {/* Collections and Redirect helpers */}
           <Route path="/collections/:handle" element={<Collection />} />
+          {/* Lightweight eco material landers (minimal UI) */}
+          <Route path="/eco/bamboo" element={<Bamboo />} />
+          <Route path="/eco/coffee-husk" element={<CoffeeHusk />} />
+          <Route path="/eco/rice-husk" element={<RiceHusk />} />
           {/* Friendly routes */}
           <Route path="/eco-collection" element={<CategoryRedirect to="/collections/eco-collection" />} />
           <Route path="/jewellery" element={<CategoryRedirect to="/shop/jewellery" />} />
