@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { products } from '@/data/products'
+import { fetchAllProducts } from '@/lib/productsApi'
+import type { Product } from '@/types/product'
 
 type FomoEvent = {
   id: string
@@ -58,10 +59,11 @@ function timeAgoString(): string {
   return `${n}${pick.unit} ago`
 }
 
-function makeEvent(opts?: { focusProduct?: (typeof products)[number] | null; onProductPage?: boolean }): FomoEvent {
+function makeEvent(all: Product[], opts?: { focusProduct?: Product | null; onProductPage?: boolean }): FomoEvent {
   const { focusProduct = null, onProductPage = false } = opts || {}
+  if (!all.length) throw new Error('no products')
   // 65% chance to highlight the current product when on its page
-  const prod = (onProductPage && Math.random() < 0.65 && focusProduct) ? focusProduct : sample(products)
+  const prod = (onProductPage && Math.random() < 0.65 && focusProduct) ? focusProduct : sample(all)
   const image = prod.images?.[0] || '/api/placeholder/300/300'
 
   // A/B variant per event
@@ -108,7 +110,10 @@ export default function FomoPopups() {
   const isCart = pathname.startsWith('/cart')
   const isProductPage = pathname.startsWith('/product/')
   const productHandle = isProductPage ? pathname.split('/')[2] : undefined
-  const currentProduct = useMemo(() => products.find(p => p.handle === productHandle) || null, [productHandle])
+  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const currentProduct = useMemo(() => allProducts.find(p => p.handle === productHandle) || null, [productHandle, allProducts])
 
   const [current, setCurrent] = useState<FomoEvent | null>(null)
   const [visible, setVisible] = useState(false)
@@ -116,12 +121,22 @@ export default function FomoPopups() {
   const queueRef = useRef<FomoEvent[]>([])
   const dismissed = useRef<boolean>(false)
 
-  // Seed an initial queue lazily
-  const seed: FomoEvent[] = useMemo(
-    () => Array.from({ length: 6 }, () => makeEvent({ focusProduct: currentProduct, onProductPage: isProductPage })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [productHandle]
-  )
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    fetchAllProducts()
+      .then((data) => {
+        if (!mounted) return
+        setAllProducts(data)
+        setLoading(false)
+      })
+      .catch((e) => {
+        if (!mounted) return
+        setLoadError(e?.message || 'failed')
+        setLoading(false)
+      })
+    return () => { mounted = false }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -131,7 +146,9 @@ export default function FomoPopups() {
     // Suppress on checkout (and optionally cart for cleanliness)
     if (isCheckout || isCart) return
 
-    queueRef.current = seed
+    if (!allProducts.length) return
+    // Seed an initial queue lazily
+    queueRef.current = Array.from({ length: 6 }, () => makeEvent(allProducts, { focusProduct: currentProduct, onProductPage: isProductPage }))
     let mounted = true
 
     const showNext = () => {
@@ -141,12 +158,12 @@ export default function FomoPopups() {
       if (queueRef.current.length < 3) {
         // Top-up queue in background
         queueRef.current.push(
-          makeEvent({ focusProduct: currentProduct, onProductPage: isProductPage }),
-          makeEvent({ focusProduct: currentProduct, onProductPage: isProductPage })
+          makeEvent(allProducts, { focusProduct: currentProduct, onProductPage: isProductPage }),
+          makeEvent(allProducts, { focusProduct: currentProduct, onProductPage: isProductPage })
         )
       }
 
-      const next = queueRef.current.shift() || makeEvent({ focusProduct: currentProduct, onProductPage: isProductPage })
+      const next = queueRef.current.shift() || makeEvent(allProducts, { focusProduct: currentProduct, onProductPage: isProductPage })
       setCurrent(next)
       setVisible(true)
 
@@ -167,8 +184,9 @@ export default function FomoPopups() {
       mounted = false
       if (timerRef.current) window.clearTimeout(timerRef.current)
     }
-  }, [seed])
+  }, [allProducts, currentProduct, isCart, isCheckout, isProductPage])
 
+  if (loadError || loading) return null
   if (!current || dismissed.current || isCheckout) return null
 
   return (

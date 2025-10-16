@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/Layout/Header';
 import { Footer } from '@/components/Layout/Footer';
@@ -12,7 +12,9 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ProductCard } from '@/components/Product/ProductCard';
-import { products, categories } from '@/data/products';
+// Server-driven categories
+import { fetchCategories, type CategoryDto } from '@/lib/categoriesApi';
+import { fetchAllProducts } from '@/lib/productsApi';
 import { Filter, Grid, List, Search, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SeoHead from '@/components/Seo/SeoHead';
@@ -36,9 +38,58 @@ const Shop = () => {
   });
 
   const [sortBy, setSortBy] = useState('relevance');
+  const [allProducts, setAllProducts] = useState([] as import('@/types/product').Product[]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [categoriesList, setCategoriesList] = useState<CategoryDto[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetchAllProducts()
+      .then((data) => {
+        if (mounted) {
+          setAllProducts(data);
+          setLoading(false);
+        }
+      })
+      .catch((e) => {
+        if (mounted) {
+          setError(e?.message || 'Failed to load products');
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Load categories from server
+  useEffect(() => {
+    let mounted = true;
+    setCategoriesLoading(true);
+    fetchCategories()
+      .then((data) => {
+        if (mounted) {
+          setCategoriesList(data);
+          setCategoriesLoading(false);
+        }
+      })
+      .catch((e) => {
+        if (mounted) {
+          setCategoriesError(e?.message || 'Failed to load categories');
+          setCategoriesLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredProducts = useMemo(() => {
-    let filtered = [...products];
+    let filtered = [...allProducts];
 
     // Search filter
     if (filters.search) {
@@ -87,7 +138,7 @@ const Shop = () => {
     }
 
     return filtered;
-  }, [filters, sortBy]);
+  }, [filters, sortBy, allProducts]);
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -200,26 +251,37 @@ const Shop = () => {
                 className="w-full lg:w-64 space-y-6"
               >
                 <Card className="p-6">
-                  <h3 className="font-semibold mb-4">Categories</h3>
-                  <div className="space-y-3">
-                    {categories.map((cat) => (
-                      <div key={cat.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={cat.id}
-                          checked={filters.categories.includes(cat.handle)}
-                          onCheckedChange={(checked) => {
-                            const newCategories = checked
-                              ? [...filters.categories, cat.handle]
-                              : filters.categories.filter(c => c !== cat.handle);
-                            handleFilterChange('categories', newCategories);
-                          }}
-                        />
-                        <Label htmlFor={cat.id} className="text-sm">
-                          {cat.title}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                  <h3 className="font-semibold mb-2">Categories</h3>
+                  {categoriesLoading && (
+                    <p className="text-sm text-muted-foreground">Loading…</p>
+                  )}
+                  {categoriesError && (
+                    <p className="text-sm text-red-600">{categoriesError}</p>
+                  )}
+                  {!categoriesLoading && !categoriesError && (
+                    <div className="space-y-3">
+                      {categoriesList.map((cat) => (
+                        <div key={cat.id} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={cat.id}
+                              checked={filters.categories.includes(cat.slug)}
+                              onCheckedChange={(checked) => {
+                                const newCategories = checked
+                                  ? [...filters.categories, cat.slug]
+                                  : filters.categories.filter(c => c !== cat.slug);
+                                handleFilterChange('categories', newCategories);
+                              }}
+                            />
+                            <Label htmlFor={cat.id} className="text-sm capitalize">
+                              {cat.name}
+                            </Label>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{cat.productCount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
 
                 <Card className="p-6">
@@ -263,7 +325,7 @@ const Shop = () => {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-6">
                 <p className="text-sm text-muted-foreground">
-                  Showing {filteredProducts.length} of {products.length} products
+                  Showing {filteredProducts.length} of {allProducts.length} products
                 </p>
                 
                 {filters.categories.length > 0 && (
@@ -286,6 +348,13 @@ const Shop = () => {
                 )}
               </div>
 
+              {loading && (
+                <div className="py-16 text-center text-muted-foreground">Loading products…</div>
+              )}
+              {error && (
+                <div className="py-16 text-center text-red-600">{error}</div>
+              )}
+              {!loading && !error && (
               <motion.div
                 layout
                 className={`grid gap-6 ${
@@ -305,8 +374,9 @@ const Shop = () => {
                   </motion.div>
                 ))}
               </motion.div>
+              )}
 
-              {filteredProducts.length === 0 && (
+              {!loading && !error && filteredProducts.length === 0 && (
                 <div className="text-center py-16">
                   <h3 className="text-xl font-medium mb-2">No products found</h3>
                   <p className="text-muted-foreground mb-6">

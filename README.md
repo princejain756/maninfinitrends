@@ -101,6 +101,40 @@ npm run dev
 
 The frontend reads `VITE_API_BASE_URL` and shows a real cart count in the header.
 
+### Admin User + Product Management
+
+This repo now includes a minimal admin system backed by sessions:
+
+- Seed the admin (username `trendsadmin`, password `trendsa1asf3#4134`):
+
+```sh
+cd server
+npm run seed:admin
+```
+
+- Admin endpoints:
+  - `POST /api/auth/login` (body: `{ username, password }`)
+  - `GET /api/auth/me` (returns current user if logged in)
+  - `POST /api/admin/products` (admin-only; creates product with default variant)
+
+- Frontend admin pages:
+  - `http://localhost:5173/admin/login`
+  - `http://localhost:5173/admin/products/new`
+
+Product creation payload expects:
+
+```json
+{
+  "slug": "unique-slug",
+  "title": "Product title",
+  "description": "Optional description",
+  "sku": "SKU-001",
+  "priceCents": 129900,
+  "images": ["https://..."],
+  "categories": ["Sarees"]
+}
+```
+
 ### Razorpay (optional)
 
 - Add your key to `.env` or `.env.local`:
