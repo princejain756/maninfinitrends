@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { Star, ShoppingBag, Heart, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { products as allProducts } from '@/data/products';
+import { fetchAllProducts } from '@/lib/productsApi';
+import type { Product } from '@/types/product';
 import { useCartStore } from '@/store/cart';
 import { toast } from 'sonner';
 
@@ -29,26 +31,46 @@ const toTag = (badges: string[] = []): string => {
   return 'Trending';
 };
 
-const bestsellers: BSItem[] = allProducts
-  .filter(p => hasRealImage(p.images))
-  .filter(p => p.badges?.includes('bestseller'))
-  .sort((a, b) => b.reviews.rating - a.reviews.rating)
-  .slice(0, 6)
-  .map(p => ({
-    id: p.id,
-    name: p.title,
-    price: p.price,
-    originalPrice: p.compareAtPrice ?? null,
-    image: p.images[0],
-    rating: p.reviews.rating,
-    reviews: p.reviews.count,
-    sales: undefined,
-    tag: toTag(p.badges),
-    category: p.subcategory || p.category,
-  }));
-
 export const Bestsellers = () => {
   const { addItem, setCartOpen } = useCartStore();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [bestsellers, setBestsellers] = useState<BSItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetchAllProducts()
+      .then((data) => {
+        if (!mounted) return;
+        setAllProducts(data);
+        const mapped: BSItem[] = data
+          .filter(p => hasRealImage(p.images))
+          .sort((a, b) => (b.reviews?.rating || 0) - (a.reviews?.rating || 0))
+          .slice(0, 6)
+          .map(p => ({
+            id: p.id,
+            name: p.title,
+            price: p.price,
+            originalPrice: p.compareAtPrice ?? null,
+            image: p.images[0],
+            rating: p.reviews.rating,
+            reviews: p.reviews.count,
+            sales: undefined,
+            tag: toTag(p.badges as unknown as string[]),
+            category: p.subcategory || p.category,
+          }));
+        setBestsellers(mapped);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!mounted) return;
+        setError(e?.message || 'Failed to load');
+        setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
 
   const handleQuickAdd = (id: string) => {
     const full = allProducts.find(p => p.id === id);
@@ -83,6 +105,8 @@ export const Bestsellers = () => {
       </motion.div>
 
       {/* Products Grid */}
+      {loading && <div className="text-center text-muted-foreground py-8">Loading…</div>}
+      {error && <div className="text-center text-red-600 py-8">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
         {bestsellers.map((product, index) => (
           <motion.div

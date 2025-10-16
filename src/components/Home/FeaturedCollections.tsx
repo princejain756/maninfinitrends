@@ -2,55 +2,61 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Leaf, Sparkles, Crown, Shirt } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { products } from '@/data/products';
 import { Link } from 'react-router-dom';
+import { fetchCategories } from '@/lib/categoriesApi';
+import { fetchAllProducts } from '@/lib/productsApi';
+import { useEffect, useMemo, useState } from 'react';
 
-const ecoPreview = products.find(p => p.category === 'eco' && p.images?.length);
-
-const collections = [
-  {
-    id: 'sarees',
-    title: 'Premium Sarees',
-    description: 'Handwoven silk and cotton sarees with intricate zari work',
-    image: '/api/placeholder/400/500',
-    icon: Crown,
-    badge: 'Bestseller',
-    color: 'primary',
-    href: '/collections/sarees'
-  },
-  {
-    id: 'kurtis',
-    title: 'Designer Kurtis',
-    description: 'Contemporary cuts with traditional embroidery',
-    image: '/api/placeholder/400/500',
-    icon: Shirt,
-    badge: 'New Arrivals',
-    color: 'accent',
-    href: '/collections/kurtis'
-  },
-  {
-    id: 'jewellery',
-    title: 'Imitation Jewellery',
-    description: 'Exquisite pieces crafted with attention to detail',
-    image: '/api/placeholder/400/500',
-    icon: Sparkles,
-    badge: 'Trending',
-    color: 'accent',
-    href: '/collections/jewellery'
-  },
-  {
-    id: 'eco',
-    title: 'Eco Home & Living',
-    description: 'Planters, tableware and drinkware made from bio-composites',
-    image: ecoPreview?.images?.[0] || '/api/placeholder/400/500',
-    icon: Leaf,
-    badge: 'Eco-Friendly',
-    color: 'secondary',
-    href: '/eco-collection'
-  }
-];
+type CollectionCard = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  icon: typeof Crown;
+  badge: string;
+  color: 'primary' | 'secondary' | 'accent';
+  href: string;
+};
 
 export const FeaturedCollections = () => {
+  const [collections, setCollections] = useState<CollectionCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    Promise.all([fetchCategories(), fetchAllProducts()])
+      .then(([cats, prods]) => {
+        if (!mounted) return;
+        // Take top 4 categories by productCount
+        const top = cats.sort((a, b) => b.productCount - a.productCount).slice(0, 4);
+        const cards: CollectionCard[] = top.map((c, i) => {
+          const img = prods.find(p => (p.category === c.slug) && p.images?.[0])?.images?.[0] || '/api/placeholder/400/500';
+          const icon = i === 0 ? Crown : i === 1 ? Shirt : i === 2 ? Sparkles : Leaf;
+          const color: 'primary' | 'secondary' | 'accent' = i === 0 ? 'primary' : (i === 3 ? 'secondary' : 'accent');
+          return {
+            id: c.slug,
+            title: c.name,
+            description: `${c.productCount} products` ,
+            image: img,
+            icon,
+            badge: i === 0 ? 'Bestseller' : i === 1 ? 'New' : i === 2 ? 'Trending' : 'Eco-Friendly',
+            color,
+            href: `/shop/${c.slug}`,
+          };
+        });
+        setCollections(cards);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!mounted) return;
+        setError(e?.message || 'Failed to load');
+        setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
+
   return (
     <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <motion.div
@@ -69,6 +75,8 @@ export const FeaturedCollections = () => {
         </p>
       </motion.div>
 
+      {loading && <div className="text-center text-muted-foreground py-8">Loading…</div>}
+      {error && <div className="text-center text-red-600 py-8">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
         {collections.map((collection, index) => {
           const Icon = collection.icon;

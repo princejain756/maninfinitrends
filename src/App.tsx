@@ -33,6 +33,8 @@ import BlogPost from "./pages/BlogPost";
 import Bamboo from "./pages/Eco/Bamboo";
 import CoffeeHusk from "./pages/Eco/CoffeeHusk";
 import RiceHusk from "./pages/Eco/RiceHusk";
+import AdminLogin from "./pages/Admin/Login";
+import AddProduct from "./pages/Admin/AddProduct";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +74,9 @@ const App = () => (
           <Route path="/eco/bamboo" element={<Bamboo />} />
           <Route path="/eco/coffee-husk" element={<CoffeeHusk />} />
           <Route path="/eco/rice-husk" element={<RiceHusk />} />
+          {/* Admin */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/products/new" element={<AddProduct />} />
           {/* Friendly routes */}
           <Route path="/eco-collection" element={<CategoryRedirect to="/collections/eco-collection" />} />
           <Route path="/jewellery" element={<CategoryRedirect to="/shop/jewellery" />} />

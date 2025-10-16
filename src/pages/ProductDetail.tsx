@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { products } from '@/data/products';
+import { fetchAllProducts, fetchProductBySlug } from '@/lib/productsApi';
 import { Product } from '@/types/product';
 import { useCartStore } from '@/store/cart';
 import { Heart, Share2, ShoppingCart, Star, Truck, Shield, RotateCcw, ChevronLeft, ChevronRight, Maximize2, Eye, Clock } from 'lucide-react';
@@ -68,12 +68,19 @@ const ProductDetail = () => {
   }, []);
 
   useEffect(() => {
-    const foundProduct = products.find(p => p.handle === handle);
-    if (foundProduct) {
-      setProduct(foundProduct);
-    } else {
-      navigate('/404');
-    }
+    if (!handle) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const p = await fetchProductBySlug(handle);
+        if (mounted) setProduct(p);
+      } catch {
+        navigate('/404');
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [handle, navigate]);
 
   if (!product) {
@@ -95,10 +102,20 @@ const ProductDetail = () => {
     toast.success(isWishlist ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
-  const relatedProducts = products.filter(p => 
-    p.id !== product.id && 
-    (p.category === product.category || product.relatedIds.includes(p.id))
-  ).slice(0, 4);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const all = await fetchAllProducts();
+        const rel = all.filter(p => p.id !== product?.id && (p.category === product?.category)).slice(0, 4);
+        if (mounted) setRelatedProducts(rel);
+      } catch {
+        // ignore related errors
+      }
+    })();
+    return () => { mounted = false; };
+  }, [product?.id, product?.category]);
 
   const discountPercentage = product.compareAtPrice 
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)

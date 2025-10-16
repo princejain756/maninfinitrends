@@ -7,6 +7,10 @@ import { cookies, sessionMiddleware } from './middleware/session';
 import { cartRouter } from './routes/cart';
 import { productsRouter } from './routes/products';
 import { checkoutRouter } from './routes/checkout';
+import { authRouter } from './routes/auth';
+import { adminRouter } from './routes/admin';
+import { attachUser } from './middleware/auth';
+import { categoriesRouter } from './routes/categories';
 
 const app = express();
 
@@ -16,11 +20,15 @@ app.use(express.json());
 app.use(cookies);
 app.use(cors({ origin: env.ORIGIN, credentials: true }));
 app.use(sessionMiddleware);
+app.use(attachUser);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.use('/api/auth', authRouter);
 app.use('/api/cart', cartRouter);
 app.use('/api/products', productsRouter);
+app.use('/api/categories', categoriesRouter);
 app.use('/api/checkout', checkoutRouter);
+app.use('/api/admin', adminRouter);
 
 // Error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

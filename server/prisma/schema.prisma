@@ -10,10 +10,12 @@ datasource db {
 model User {
   id        String    @id @default(uuid()) @db.Uuid
   email     String    @unique
+  username  String?   @unique
   name      String?
   password  String?   // hashed
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  role      Role      @default(USER)
 
   sessions  Session[]
   carts     Cart[]
@@ -208,4 +210,9 @@ enum PaymentStatus {
   CAPTURED
   FAILED
   REFUNDED
+}
+
+enum Role {
+  USER
+  ADMIN
 }

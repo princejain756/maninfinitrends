@@ -1,10 +1,11 @@
-import { useRef, useState, type MouseEvent } from 'react';
+import { useRef, useState, type MouseEvent, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Heart, ShoppingBag, Eye, Star } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { products as allProducts } from '@/data/products';
+import { fetchAllProducts } from '@/lib/productsApi';
+import type { Product } from '@/types/product';
 import { useCartStore } from '@/store/cart';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -33,25 +34,12 @@ const toTag = (badges: string[] = []): string => {
 
 const hasRealImage = (imgs?: string[]) => !!imgs && imgs.length > 0 && !imgs[0].includes('/api/placeholder');
 
-const newArrivals: NAItem[] = allProducts
-  .filter(p => hasRealImage(p.images))
-  .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
-  .slice(0, 8)
-  .map(p => ({
-    id: p.id,
-    name: p.title,
-    price: p.price,
-    originalPrice: p.compareAtPrice ?? null,
-    image: p.images[0],
-    rating: p.reviews.rating,
-    reviews: p.reviews.count,
-    tag: toTag(p.badges),
-    inStock: (p.stock ?? 0) > 0,
-    category: p.subcategory || p.category,
-    handle: p.handle,
-  }));
-
 export const NewArrivals = () => {
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [items, setItems] = useState<NAItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +47,42 @@ export const NewArrivals = () => {
   const navigate = useNavigate();
 
   const itemsToShow = 4;
-  const maxIndex = Math.max(0, newArrivals.length - itemsToShow);
+  const maxIndex = Math.max(0, items.length - itemsToShow);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetchAllProducts()
+      .then((data) => {
+        if (!mounted) return;
+        setAllProducts(data);
+        const mapped: NAItem[] = data
+          .filter(p => hasRealImage(p.images))
+          .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+          .slice(0, 8)
+          .map(p => ({
+            id: p.id,
+            name: p.title,
+            price: p.price,
+            originalPrice: p.compareAtPrice ?? null,
+            image: p.images[0],
+            rating: p.reviews.rating,
+            reviews: p.reviews.count,
+            tag: toTag(p.badges as unknown as string[]),
+            inStock: (p.stock ?? 0) > 0,
+            category: p.subcategory || p.category,
+            handle: p.handle,
+          }));
+        setItems(mapped);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!mounted) return;
+        setError(e?.message || 'Failed to load');
+        setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
 
   const scroll = (direction: 'left' | 'right') => {
     const newIndex = direction === 'left' 
@@ -154,19 +177,25 @@ export const NewArrivals = () => {
       </div>
 
       {/* Products Carousel */}
+      {loading && (
+        <div className="text-center text-muted-foreground py-8">Loading…</div>
+      )}
+      {error && (
+        <div className="text-center text-red-600 py-8">{error}</div>
+      )}
       <div className="relative overflow-hidden">
         <motion.div
           ref={scrollContainerRef}
           className="flex gap-6"
           animate={{ x: `-${currentIndex * (100 / itemsToShow)}%` }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
-          style={{ width: `${(newArrivals.length / itemsToShow) * 100}%` }}
+          style={{ width: `${(items.length / itemsToShow) * 100}%` }}
         >
-          {newArrivals.map((product, index) => (
+          {items.map((product, index) => (
             <motion.div
               key={product.id}
               className="flex-shrink-0"
-              style={{ width: `${100 / newArrivals.length}%` }}
+              style={{ width: `${100 / Math.max(items.length, 1)}%` }}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -287,7 +316,7 @@ export const NewArrivals = () => {
       {/* Mobile Scroll Indicators */}
       <div className="flex justify-center mt-8 md:hidden">
         <div className="flex gap-2">
-          {Array.from({ length: Math.ceil(newArrivals.length / 2) }).map((_, index) => (
+          {Array.from({ length: Math.max(1, Math.ceil(items.length / 2)) }).map((_, index) => (
             <button
               key={index}
               className={`w-2 h-2 rounded-full transition-colors ${
