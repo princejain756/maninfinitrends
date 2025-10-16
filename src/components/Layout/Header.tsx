@@ -187,7 +187,7 @@ export const Header = () => {
               <button
                 className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors"
                 aria-label="Account"
-                onClick={() => navigate('/contact')}
+                onClick={() => navigate('/account/login')}
               >
                 <User className="h-5 w-5" />
               </button>

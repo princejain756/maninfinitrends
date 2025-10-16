@@ -59,3 +59,25 @@ authRouter.get('/me', async (req, res, next) => {
   }
 });
 
+// Register new user
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  name: z.string().optional(),
+  username: z.string().min(3).max(50).optional(),
+});
+
+authRouter.post('/register', async (req, res, next) => {
+  try {
+    const body = registerSchema.parse(req.body);
+    const exists = await prisma.user.findFirst({ where: { OR: [{ email: body.email }, body.username ? { username: body.username } : undefined].filter(Boolean) as any } });
+    if (exists) return res.status(400).json({ error: 'User already exists' });
+    const password = await bcrypt.hash(body.password, 10);
+    const user = await prisma.user.create({ data: { email: body.email, username: body.username, name: body.name, password, role: 'USER' } });
+    if (!req.sessionId) throw new Error('No session');
+    await prisma.session.update({ where: { token: req.sessionId }, data: { userId: user.id } });
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});

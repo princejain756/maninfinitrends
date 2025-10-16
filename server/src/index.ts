@@ -11,6 +11,9 @@ import { authRouter } from './routes/auth';
 import { adminRouter } from './routes/admin';
 import { attachUser } from './middleware/auth';
 import { categoriesRouter } from './routes/categories';
+import { ticketsRouter } from './routes/tickets';
+import { ordersRouter } from './routes/orders';
+import { paymentsRouter } from './routes/payments';
 
 const app = express();
 
@@ -29,6 +32,9 @@ app.use('/api/products', productsRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/tickets', ticketsRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/payments', paymentsRouter);
 
 // Error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
