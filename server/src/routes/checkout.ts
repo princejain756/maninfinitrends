@@ -27,6 +27,7 @@ checkoutRouter.post('/', async (req, res, next) => {
           status: 'PENDING',
           currency: cart.items[0]?.currency ?? 'INR',
           totalCents: cart.items.reduce((s, it) => s + it.unitPrice * it.quantity, 0),
+          userId: (req.user?.id as string | undefined) || undefined,
           items: {
             create: cart.items.map((it) => ({
               variantId: it.variantId,
@@ -58,4 +59,3 @@ checkoutRouter.post('/', async (req, res, next) => {
     next(err);
   }
 });
-

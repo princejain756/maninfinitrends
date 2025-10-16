@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useUserStore } from '@/store/user';
 import { startRazorpayPayment } from '@/lib/razorpay';
+import { api } from '@/lib/api';
 
 const Checkout = () => {
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore();
@@ -112,19 +113,32 @@ const Checkout = () => {
       toast.success('Account created for faster checkout');
     }
 
-    // Payment: Razorpay for online methods, simple success for COD.
-    if (formData.paymentMethod === 'cod') {
-      toast.success('Order placed with Cash on Delivery');
-      clearCart();
-      navigate('/');
+    const subtotalNow = getTotalPrice();
+    const deliveryNow = formData.paymentMethod === 'cod' ? computeCODFee(subtotalNow) : 0;
+
+    // 1) Create order server-side
+    let orderId: string | null = null;
+    let totalCents: number = Math.round((subtotalNow + deliveryNow) * 100);
+    try {
+      const res = await api<{ orderId: string; totalCents: number }>(`/api/checkout`, { method: 'POST', body: JSON.stringify({}) });
+      orderId = res.orderId;
+      totalCents = res.totalCents;
+    } catch (e: any) {
+      toast.error(e?.message || 'Unable to create order');
       return;
     }
 
-    const subtotalNow = getTotalPrice();
-    const deliveryNow = formData.paymentMethod === 'cod' ? computeCODFee(subtotalNow) : 0;
-    const paisa = (subtotalNow + deliveryNow) * 100;
+    // COD path: order is created, no online payment
+    if (formData.paymentMethod === 'cod') {
+      toast.success('Order placed with Cash on Delivery');
+      clearCart();
+      navigate('/account/orders');
+      return;
+    }
+
+    // 2) Start Razorpay checkout for the order total
     const res = await startRazorpayPayment({
-      amount: Math.round(paisa),
+      amount: Math.round(totalCents),
       name: `${formData.firstName} ${formData.lastName}`.trim(),
       email: formData.email,
       contact: formData.phone,
@@ -132,9 +146,16 @@ const Checkout = () => {
     });
 
     if (res.status === 'success' || res.status === 'demo') {
+      // 3) Confirm payment with the API so admin capture/refund can work
+      try {
+        const providerPaymentId = (res as any).response?.razorpay_payment_id || (res as any).id || 'payment';
+        await api(`/api/payments/confirm`, { method: 'POST', body: JSON.stringify({ orderId, provider: 'razorpay', providerPaymentId }) });
+      } catch (err: any) {
+        // Non-fatal; admin can reconcile later
+      }
       toast.success('Payment successful');
       clearCart();
-      navigate('/');
+      navigate('/account/orders');
     } else if (res.status === 'cancelled') {
       toast.message('Payment cancelled');
     }

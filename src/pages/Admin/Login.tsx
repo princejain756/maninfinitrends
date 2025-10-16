@@ -15,7 +15,7 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
-      navigate('/admin/products/new');
+      navigate('/admin');
     } catch (err: any) {
       setError(err?.message || 'Login failed');
     } finally {
@@ -41,4 +41,3 @@ export default function AdminLogin() {
     </div>
   );
 }
-

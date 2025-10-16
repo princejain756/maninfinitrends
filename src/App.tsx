@@ -35,6 +35,16 @@ import CoffeeHusk from "./pages/Eco/CoffeeHusk";
 import RiceHusk from "./pages/Eco/RiceHusk";
 import AdminLogin from "./pages/Admin/Login";
 import AddProduct from "./pages/Admin/AddProduct";
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminDashboard from "./pages/Admin/Dashboard";
+import AdminProductsList from "./pages/Admin/Products/List";
+import AdminProductEdit from "./pages/Admin/Products/Edit";
+import AdminOrdersList from "./pages/Admin/Orders/List";
+import AdminOrderDetail from "./pages/Admin/Orders/Detail";
+import AdminTicketsList from "./pages/Admin/Tickets/List";
+import AccountLogin from "./pages/Account/Login";
+import AccountRegister from "./pages/Account/Register";
+import AccountOrders from "./pages/Account/Orders";
 
 const queryClient = new QueryClient();
 
@@ -76,7 +86,19 @@ const App = () => (
           <Route path="/eco/rice-husk" element={<RiceHusk />} />
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/products/new" element={<AddProduct />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="products" element={<AdminProductsList />} />
+            <Route path="products/new" element={<AddProduct />} />
+            <Route path="products/:id/edit" element={<AdminProductEdit />} />
+            <Route path="orders" element={<AdminOrdersList />} />
+            <Route path="orders/:id" element={<AdminOrderDetail />} />
+            <Route path="tickets" element={<AdminTicketsList />} />
+          </Route>
+          {/* Account */}
+          <Route path="/account/login" element={<AccountLogin />} />
+          <Route path="/account/register" element={<AccountRegister />} />
+          <Route path="/account/orders" element={<AccountOrders />} />
           {/* Friendly routes */}
           <Route path="/eco-collection" element={<CategoryRedirect to="/collections/eco-collection" />} />
           <Route path="/jewellery" element={<CategoryRedirect to="/shop/jewellery" />} />

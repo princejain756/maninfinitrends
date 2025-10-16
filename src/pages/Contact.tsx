@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { useState } from 'react';
+import { api } from '@/lib/api';
 import SeoHead from '@/components/Seo/SeoHead';
 import JsonLd from '@/components/Seo/JsonLd';
 import { BASE_URL } from '@/config/seo';
@@ -31,13 +33,7 @@ const Contact = () => {
           </Card>
           <Card className="card-glass p-6">
             <h3 className="text-xl font-semibold mb-4">Send us a message</h3>
-            <form className="space-y-3" onSubmit={(e)=>{e.preventDefault(); alert('Thanks! We will get back to you.')}}>
-              <Input placeholder="Full name" required />
-              <Input placeholder="Email" type="email" required />
-              <Input placeholder="Phone" />
-              <Textarea placeholder="How can we help?" rows={5} required />
-              <Button type="submit" className="btn-primary"><Send className="h-4 w-4 mr-2"/>Send</Button>
-            </form>
+            <ContactForm />
           </Card>
         </div>
       </main>
@@ -48,3 +44,38 @@ const Contact = () => {
 
 export default Contact;
 
+function ContactForm() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    setLoading(true);
+    try {
+      const subject = `Contact from ${name}${phone ? ` (${phone})` : ''}`.slice(0, 100);
+      await api('/api/tickets', { method: 'POST', body: JSON.stringify({ email, name, subject, message }) });
+      setMsg('Thanks! Your ticket has been created. We will reply by email.');
+      setName(''); setEmail(''); setPhone(''); setMessage('');
+    } catch (err: any) {
+      setMsg(err?.message || 'Failed to send');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form className="space-y-3" onSubmit={submit}>
+      <Input placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} required />
+      <Input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
+      <Input placeholder="Phone" value={phone} onChange={e=>setPhone(e.target.value)} />
+      <Textarea placeholder="How can we help?" rows={5} value={message} onChange={e=>setMessage(e.target.value)} required />
+      {msg && <p className="text-sm">{msg}</p>}
+      <Button type="submit" className="btn-primary" disabled={loading}><Send className="h-4 w-4 mr-2"/>{loading?'Sending…':'Send'}</Button>
+    </form>
+  );
+}
