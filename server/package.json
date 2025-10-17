@@ -12,10 +12,14 @@
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts",
-    "seed:admin": "tsx prisma/seed-admin.ts"
+    "seed:admin": "tsx prisma/seed-admin.ts",
+    "seed:categories": "tsx prisma/scripts/seed-categories.ts",
+    "fix:categories": "tsx prisma/scripts/fix-categories.ts",
+    "migrate:meta": "tsx prisma/scripts/migrate-meta.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
+    "@types/multer": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -23,6 +27,7 @@
     "express": "^4.19.2",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
+    "multer": "^2.0.2",
     "zod": "^3.25.8"
   },
   "devDependencies": {

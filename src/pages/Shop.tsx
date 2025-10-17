@@ -53,6 +53,9 @@ const Shop = () => {
         if (mounted) {
           setAllProducts(data);
           setLoading(false);
+          // Expand price max to cover available products
+          const maxPrice = Math.max(0, ...data.map(p => p.price || 0));
+          setFilters((prev) => ({ ...prev, priceRange: [0, Math.max(50000, maxPrice)] }));
         }
       })
       .catch((e) => {

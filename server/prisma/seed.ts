@@ -12,7 +12,24 @@ async function main() {
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
 
-  const sarees = await prisma.category.create({ data: { name: 'Sarees', slug: 'sarees' } });
+  // Seed default categories
+  const categories = [
+    { name: 'Sarees', slug: 'sarees' },
+    { name: 'Eco Collection', slug: 'eco-collection' },
+    { name: 'Kurtis', slug: 'kurtis' },
+    { name: 'Indo-Western', slug: 'indo-western' },
+    { name: 'Fabrics', slug: 'fabrics' },
+    { name: 'Jewellery', slug: 'jewellery' },
+    // Keep legacy ones that might already exist in some DBs
+    { name: 'Drinkware', slug: 'drinkware' },
+    { name: 'Kitchen', slug: 'kitchen' },
+  ];
+
+  const catBySlug: Record<string, { id: string; name: string; slug: string }> = {};
+  for (const c of categories) {
+    const created = await prisma.category.create({ data: c });
+    catBySlug[c.slug] = created;
+  }
 
   const p1 = await prisma.product.create({
     data: {
@@ -20,7 +37,7 @@ async function main() {
       title: 'Emerald Silk Saree',
       description: 'Handwoven silk saree with intricate zari work.',
       images: { create: [{ url: '/images/saree1.jpg', alt: 'Emerald Silk Saree' }] },
-      categories: { create: [{ categoryId: sarees.id }] },
+      categories: { create: [{ categoryId: catBySlug['sarees'].id }] },
       variants: {
         create: [
           { sku: 'EMR-001', name: 'Standard', priceCents: 899900, currency: 'INR' },
@@ -44,4 +61,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-
