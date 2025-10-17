@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/store/cart';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Shield, MapPin, User } from 'lucide-react';
+import { CreditCard, Shield, MapPin, User, Minus, Plus, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useUserStore } from '@/store/user';
@@ -17,7 +17,7 @@ import { startRazorpayPayment } from '@/lib/razorpay';
 import { api } from '@/lib/api';
 
 const Checkout = () => {
-  const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore();
+  const { items, getTotalPrice, getTotalItems, clearCart, updateQuantity, removeItem } = useCartStore();
   const createAccount = useUserStore((s) => s.createAccount);
   const navigate = useNavigate();
   const formTopRef = useRef<HTMLDivElement>(null);
@@ -442,9 +442,51 @@ const Checkout = () => {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium line-clamp-2">{item.product.title}</h4>
-                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                        <p className="text-sm font-medium">₹{(item.product.price * item.quantity).toLocaleString()}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-sm font-medium line-clamp-2 pr-6">{item.product.title}</h4>
+                          <button
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label="Remove item"
+                            onClick={() => removeItem(item.productId)}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {item.selectedVariant && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {Object.entries(item.selectedVariant).map(([key, value]) => (
+                              <span key={key} className="mr-2">
+                                {key}: {value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="text-sm font-medium">₹{(item.product.price * item.quantity).toLocaleString()}</p>
+                        </div>
                       </div>
                     </div>
                   ))}

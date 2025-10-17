@@ -83,6 +83,21 @@ const ProductDetail = () => {
     };
   }, [handle, navigate]);
 
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const all = await fetchAllProducts();
+        const rel = all.filter(p => p.id !== product?.id && (p.category === product?.category)).slice(0, 4);
+        if (mounted) setRelatedProducts(rel);
+      } catch {
+        // ignore related errors
+      }
+    })();
+    return () => { mounted = false; };
+  }, [product?.id, product?.category]);
+
   if (!product) {
     return <div>Loading...</div>;
   }
@@ -102,32 +117,24 @@ const ProductDetail = () => {
     toast.success(isWishlist ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const all = await fetchAllProducts();
-        const rel = all.filter(p => p.id !== product?.id && (p.category === product?.category)).slice(0, 4);
-        if (mounted) setRelatedProducts(rel);
-      } catch {
-        // ignore related errors
-      }
-    })();
-    return () => { mounted = false; };
-  }, [product?.id, product?.category]);
+  
 
   const discountPercentage = product.compareAtPrice 
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
     : 0;
 
+  // Safe images array
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  const hasImages = images.length > 0;
+  const currentIndex = Math.min(selectedImageIndex, Math.max(0, images.length - 1));
+
   return (
     <div className="min-h-screen bg-background">
       <SeoHead
         title={product.seo?.title || `${product.title} — ${BRAND}`}
-        description={product.seo?.description || product.shortDescription}
+        description={product.seo?.description || product.shortDescription || product.description}
         canonicalPath={`/product/${product.handle}`}
-        image={product.images?.[0] && product.images[0].startsWith('http') ? product.images[0] : undefined}
+        image={images[0] && images[0].startsWith('http') ? images[0] : undefined}
       />
       <Header />
       
@@ -150,8 +157,8 @@ const ProductDetail = () => {
                 '@context': 'https://schema.org',
                 '@type': 'Product',
                 name: product.title,
-                image: product.images.map((src) => (src.startsWith('http') ? src : `${BASE_URL}${src}`)),
-                description: product.shortDescription || product.description,
+                image: images.map((src) => (src.startsWith('http') ? src : `${BASE_URL}${src}`)),
+                description: product.seo?.description || product.shortDescription || product.description,
                 sku: product.sku,
                 brand: { '@type': 'Brand', name: BRAND },
                 url: `${BASE_URL}/product/${product.handle}`,
@@ -190,26 +197,30 @@ const ProductDetail = () => {
             {/* Product Images */}
             <div className="space-y-4">
               <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden group">
-                <motion.img
-                  key={selectedImageIndex}
-                  src={product.images[selectedImageIndex]}
-                  alt={product.title}
-                  className="w-full h-full object-cover cursor-zoom-in"
-                  onClick={() => setIsImageZoomed(true)}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                />
+                {hasImages ? (
+                  <motion.img
+                    key={currentIndex}
+                    src={images[currentIndex]}
+                    alt={product.title}
+                    className="w-full h-full object-cover cursor-zoom-in"
+                    onClick={() => setIsImageZoomed(true)}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">No image</div>
+                )}
                 
                 {/* Navigation arrows */}
-                {product.images.length > 1 && (
+                {images.length > 1 && (
                   <>
                     <Button
                       variant="secondary"
                       size="sm"
                       className="absolute left-4 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => setSelectedImageIndex(prev => 
-                        prev === 0 ? product.images.length - 1 : prev - 1
+                        prev === 0 ? images.length - 1 : prev - 1
                       )}
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -219,7 +230,7 @@ const ProductDetail = () => {
                       size="sm"
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => setSelectedImageIndex(prev => 
-                        prev === product.images.length - 1 ? 0 : prev + 1
+                        prev === images.length - 1 ? 0 : prev + 1
                       )}
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -244,7 +255,7 @@ const ProductDetail = () => {
                       {discountPercentage}% OFF
                     </Badge>
                   )}
-                  {product.badges.map(badge => (
+                  {(product.badges || []).map(badge => (
                     <Badge key={badge} variant="secondary">
                       {badge.replace('-', ' ')}
                     </Badge>
@@ -253,9 +264,9 @@ const ProductDetail = () => {
               </div>
 
               {/* Thumbnail images */}
-              {product.images.length > 1 && (
+              {images.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto">
-                  {product.images.map((image, index) => (
+                  {images.map((image, index) => (
                     <button
                       key={index}
                       className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
@@ -314,7 +325,7 @@ const ProductDetail = () => {
                 </p>
               </div>
 
-              {/* Price */}
+              {/* Price + Stock */}
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <span className="text-3xl font-bold text-primary">
@@ -329,6 +340,13 @@ const ProductDetail = () => {
                     <Badge className="bg-green-500 text-white">
                       Save {discountPercentage}%
                     </Badge>
+                  )}
+                </div>
+                <div className="text-sm">
+                  {product.stock > 0 ? (
+                    <span className="text-emerald-700">In stock: {product.stock} {product.stock === 1 ? 'unit' : 'units'}</span>
+                  ) : (
+                    <span className="text-red-600">Out of stock</span>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -477,9 +495,7 @@ const ProductDetail = () => {
               
               <TabsContent value="description" className="mt-6">
                 <Card className="p-6">
-                  <div className="prose prose-gray max-w-none">
-                    <p className="text-lg leading-relaxed">{product.description}</p>
-                  </div>
+                  <div className="prose prose-gray max-w-none" dangerouslySetInnerHTML={{ __html: product.description }} />
                 </Card>
               </TabsContent>
               
@@ -540,7 +556,7 @@ const ProductDetail = () => {
                     <Card className="card-premium overflow-hidden">
                       <div className="aspect-square bg-muted">
                         <img
-                          src={relatedProduct.images[0]}
+                          src={relatedProduct.images?.[0] || '/api/placeholder/600/600'}
                           alt={relatedProduct.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cors from 'cors';
@@ -16,6 +18,8 @@ import { ordersRouter } from './routes/orders';
 import { paymentsRouter } from './routes/payments';
 
 const app = express();
+// Behind nginx reverse proxy so req.protocol reflects HTTPS
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(morgan('dev'));
@@ -24,6 +28,11 @@ app.use(cookies);
 app.use(cors({ origin: env.ORIGIN, credentials: true }));
 app.use(sessionMiddleware);
 app.use(attachUser);
+
+// Static uploads directory served from dist/uploads for consistency in pm2/tsx and compiled modes
+const uploadDir = path.resolve(process.cwd(), 'dist/uploads');
+try { fs.mkdirSync(uploadDir, { recursive: true }); } catch {}
+app.use('/uploads', express.static(uploadDir));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRouter);
