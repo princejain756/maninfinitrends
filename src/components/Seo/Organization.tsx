@@ -14,7 +14,7 @@ export const OrganizationJsonLd = () => {
     contactPoint: [{
       '@type': 'ContactPoint',
       contactType: 'customer support',
-      email: 'manita4599@gmail.com',
+      email: 'info@maninfini.in',
       telephone: '+91-98765-43210',
       areaServed: 'IN'
     }],

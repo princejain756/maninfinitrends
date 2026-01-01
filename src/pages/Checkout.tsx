@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Header } from '@/components/Layout/Header';
 import { Footer } from '@/components/Layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,13 @@ const Checkout = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showErrorSummary, setShowErrorSummary] = useState(false);
+  const [authUser, setAuthUser] = useState<any | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [prefilledUser, setPrefilledUser] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [addressLabel, setAddressLabel] = useState('Home');
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -87,6 +94,70 @@ const Checkout = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Load user + saved addresses if logged in
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { user } = await api<{ user: any }>('/api/auth/me');
+        if (!mounted) return;
+        setAuthUser(user || null);
+        if (user) {
+          try {
+            const addrs = await api<any[]>('/api/addresses');
+            if (!mounted) return;
+            setSavedAddresses(addrs);
+            // Auto-select first address and prefill fields if none selected yet
+            if (addrs && addrs.length > 0 && !selectedAddressId) {
+              const a = addrs[0];
+              setSelectedAddressId(a.id);
+              setFormData((prev) => ({
+                ...prev,
+                address: a.line1 || prev.address,
+                apartment: a.line2 || prev.apartment,
+                city: a.city || prev.city,
+                state: a.state || prev.state,
+                pincode: a.postalCode || prev.pincode,
+                phone: prev.phone || (a.phone || '').replace(/\D/g, '').slice(0,10),
+                firstName: prev.firstName || String(a.name||'').split(' ')[0] || '',
+                lastName: prev.lastName || String(a.name||'').split(' ').slice(1).join(' ') || '',
+              }));
+            }
+          } catch {}
+        }
+      } catch {
+        if (!mounted) return;
+        setAuthUser(null);
+      } finally {
+        if (mounted) setAuthChecked(true);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [selectedAddressId]);
+
+  // Prefill from signed-in user (once)
+  useEffect(() => {
+    if (!authChecked || prefilledUser) return;
+    if (!authUser) return;
+    setPrefilledUser(true);
+    setFormData((prev) => {
+      // Split name into first/last best-effort
+      const fullName: string = (authUser.name || '').trim();
+      let firstName = prev.firstName;
+      let lastName = prev.lastName;
+      if (fullName && !prev.firstName && !prev.lastName) {
+        const parts = fullName.split(/\s+/);
+        firstName = parts[0] || '';
+        lastName = parts.slice(1).join(' ') || '';
+      }
+      const email = prev.email || authUser.email || '';
+      // Phone: from first saved address with phone
+      const addrWithPhone = savedAddresses.find((a) => a?.phone);
+      const phone = prev.phone || (addrWithPhone?.phone || '').replace(/\D/g, '').slice(0,10);
+      return { ...prev, firstName, lastName, email, phone };
+    });
+  }, [authChecked, authUser, savedAddresses, prefilledUser]);
+
   const computeCODFee = (amount: number) => Math.min(250, Math.max(100, Math.round(amount * 0.10)));
 
   const handlePlaceOrder = async () => {
@@ -114,13 +185,66 @@ const Checkout = () => {
     }
 
     const subtotalNow = getTotalPrice();
+    // Sync local cart to server before creating the order
+    try {
+      await api('/api/cart/sync', {
+        method: 'POST',
+        body: JSON.stringify({
+          items: items.map((it) => ({ productId: it.productId, quantity: it.quantity, options: it.selectedVariant || undefined })),
+          replace: true,
+        }),
+      });
+    } catch (e:any) {
+      // If sync fails, show an error and stop
+      toast.error(e?.message || 'Could not sync cart');
+      return;
+    }
     const deliveryNow = formData.paymentMethod === 'cod' ? computeCODFee(subtotalNow) : 0;
 
-    // 1) Create order server-side
+    // Optionally save address for logged-in user
+    if (authUser && saveAddress) {
+      try {
+        await api('/api/addresses', {
+          method: 'POST',
+          body: JSON.stringify({
+            label: addressLabel || undefined,
+            name: `${formData.firstName} ${formData.lastName}`.trim() || formData.firstName || 'Customer',
+            line1: formData.address,
+            line2: formData.apartment || undefined,
+            city: formData.city,
+            state: formData.state,
+            postalCode: formData.pincode,
+            country: 'IN',
+            phone: formData.phone || undefined,
+          }),
+        });
+      } catch (e:any) {
+        // Non-fatal: continue checkout
+      }
+    }
+
+    // 1) Create order server-side with shipping + payment method
     let orderId: string | null = null;
     let totalCents: number = Math.round((subtotalNow + deliveryNow) * 100);
     try {
-      const res = await api<{ orderId: string; totalCents: number }>(`/api/checkout`, { method: 'POST', body: JSON.stringify({}) });
+      const res = await api<{ orderId: string; orderNumber: number; totalCents: number }>(`/api/checkout`, {
+        method: 'POST',
+        body: JSON.stringify({
+          paymentMethod: formData.paymentMethod,
+          billingSame: formData.billingSame,
+          savedAddressId: selectedAddressId || undefined,
+          shippingAddress: {
+            name: `${formData.firstName} ${formData.lastName}`.trim() || formData.firstName || 'Customer',
+            line1: formData.address,
+            line2: formData.apartment || undefined,
+            city: formData.city,
+            state: formData.state,
+            postalCode: formData.pincode,
+            country: 'IN',
+            phone: formData.phone || undefined,
+          },
+        })
+      });
       orderId = res.orderId;
       totalCents = res.totalCents;
     } catch (e: any) {
@@ -191,21 +315,23 @@ const Checkout = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" ref={formTopRef}>
             {/* Checkout Form */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Mode toggle: Guest vs Create Account */}
-              <Card className="p-2 flex gap-2 bg-muted/40">
-                <button
-                  className={`flex-1 py-2 rounded-md text-sm ${mode === 'guest' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
-                  onClick={() => setMode('guest')}
-                >
-                  Guest Checkout
-                </button>
-                <button
-                  className={`flex-1 py-2 rounded-md text-sm ${mode === 'account' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
-                  onClick={() => setMode('account')}
-                >
-                  Create Account & Checkout
-                </button>
-              </Card>
+              {/* Mode toggle: only show for guests (hide for signed-in users) */}
+              {authChecked && !authUser && (
+                <Card className="p-2 flex gap-2 bg-muted/40">
+                  <button
+                    className={`flex-1 py-2 rounded-md text-sm ${mode === 'guest' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                    onClick={() => setMode('guest')}
+                  >
+                    Guest Checkout
+                  </button>
+                  <button
+                    className={`flex-1 py-2 rounded-md text-sm ${mode === 'account' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                    onClick={() => setMode('account')}
+                  >
+                    Create Account & Checkout
+                  </button>
+                </Card>
+              )}
               {showErrorSummary && Object.keys(errors).length > 0 && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-200">
                   <p className="text-sm font-medium text-red-700 mb-1">There are {Object.keys(errors).length} errors to fix before placing your order.</p>
@@ -291,6 +417,40 @@ const Checkout = () => {
                 </div>
                 
                 <div className="space-y-4">
+                  {authUser && savedAddresses.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="md:col-span-2">
+                        <Label>Saved addresses</Label>
+                        <Select value={selectedAddressId} onValueChange={(id) => {
+                          setSelectedAddressId(id);
+                          const a = savedAddresses.find(x=>x.id===id);
+                          if (a) {
+                            handleInputChange('address', a.line1);
+                            handleInputChange('apartment', a.line2 || '');
+                            handleInputChange('city', a.city);
+                            handleInputChange('state', a.state);
+                            handleInputChange('pincode', a.postalCode);
+                            handleInputChange('phone', a.phone || '');
+                            // Split name to first/last if possible
+                            const parts = String(a.name||'').split(' ');
+                            handleInputChange('firstName', parts[0]||'');
+                            handleInputChange('lastName', parts.slice(1).join(' ')||'');
+                          }
+                        }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a saved address" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {savedAddresses.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>
+                                {(a.label || 'Address')} • {a.city}, {a.state}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="px-2 py-0.5 rounded bg-muted">India-only checkout</span>
                     <span>We currently ship within India.</span>
@@ -371,6 +531,19 @@ const Checkout = () => {
                       )}
                     </div>
                   </div>
+
+                  {authUser && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <label className="flex items-center gap-2 text-sm md:col-span-2">
+                        <input type="checkbox" checked={saveAddress} onChange={(e)=>setSaveAddress(e.target.checked)} />
+                        Save this address to my account
+                      </label>
+                      <div>
+                        <Label htmlFor="addrLabel">Label (e.g., Home)</Label>
+                        <Input id="addrLabel" value={addressLabel} onChange={(e)=>setAddressLabel(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
 

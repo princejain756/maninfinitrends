@@ -18,6 +18,8 @@ export interface Product {
   description: string;
   shortDescription: string;
   attributes: Record<string, any>;
+  // Optional list of materials linked to product
+  materials?: { slug: string; name: string }[];
   care?: string[];
   badges: ('handcrafted' | 'eco-friendly' | 'limited-stock' | 'bestseller' | 'new-arrival')[];
   relatedIds: string[];
@@ -39,6 +41,8 @@ export interface CartItem {
   product: Product;
   quantity: number;
   selectedVariant?: Record<string, string>;
+  // Optional server-side cart item id (for direct sync of quantity/removals)
+  serverItemId?: string;
 }
 
 export interface Collection {

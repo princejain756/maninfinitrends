@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
-import { adminUploadImages, adminListUploads, adminFindUploadUsages, adminDetachUploads, adminDeleteUploads } from '@/lib/adminApi';
+import { adminUploadImages, adminUploadImage, adminListUploads, adminFindUploadUsages, adminDetachUploads, adminDeleteUploads, adminUpdateCategory, adminUpdateMaterial, adminDeleteCategory, adminDeleteMaterial } from '@/lib/adminApi';
 import { fetchCategories, type CategoryDto } from '@/lib/categoriesApi';
+import { fetchMaterials, type MaterialDto } from '@/lib/materialsApi';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -24,9 +25,14 @@ export default function AddProduct() {
   const [seoDescription, setSeoDescription] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
   const [sku, setSku] = useState('');
-  const [price, setPrice] = useState(''); // rupees
+  const [price, setPrice] = useState(''); // selling price (rupees)
+  const [compareAt, setCompareAt] = useState(''); // original/MRP (rupees)
   const [stock, setStock] = useState(''); // quantity
   const [images, setImages] = useState(''); // comma separated
+  // Specifications
+  const [specs, setSpecs] = useState<Record<string, string>>({
+    Fabric: '', Color: '', Neckline: '', 'Pack Contain': '', Technique: '', 'Product Length': '', Sleeves: '', Fit: '', Lining: ''
+  });
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [showLibrary, setShowLibrary] = useState(false);
   const [library, setLibrary] = useState<{ name: string; url: string; size: number; mtime: number }[]>([]);
@@ -35,14 +41,55 @@ export default function AddProduct() {
   const [librarySort, setLibrarySort] = useState<'newest'|'oldest'|'name'|'size'>('newest');
   const [categories, setCategories] = useState(''); // comma separated
   const [files, setFiles] = useState<File[]>([]);
+  type UploadItem = { id: string; name: string; size: number; progress: number; status: 'uploading'|'done'|'error'; url?: string; error?: string };
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
   // Category selection helpers
   const [availableCategories, setAvailableCategories] = useState<CategoryDto[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]); // slugs
   const [categoryInput, setCategoryInput] = useState('');
+  const [showManageCats, setShowManageCats] = useState(false);
+  const [catEdits, setCatEdits] = useState<Record<string, { name: string; saving?: boolean; error?: string; success?: boolean }>>({});
+  // Materials
+  const [availableMaterials, setAvailableMaterials] = useState<MaterialDto[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]); // slugs
+  const [materialInput, setMaterialInput] = useState('');
+  const [showManageMats, setShowManageMats] = useState(false);
+  const [matEdits, setMatEdits] = useState<Record<string, { name: string; saving?: boolean; error?: string; success?: boolean }>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleUploadMore = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const arr = Array.from(list).filter(f => f.type.startsWith('image/'));
+    if (arr.length === 0) return;
+    setFiles(arr);
+    setError(null);
+    const newItems: UploadItem[] = arr.map((f, i) => ({ id: `${Date.now()}-${i}-${f.name}` , name: f.name, size: f.size, progress: 0, status: 'uploading' }));
+    setUploads(prev => [...prev, ...newItems]);
+    for (let i = 0; i < arr.length; i++) {
+      const f = arr[i];
+      const id = newItems[i].id;
+      try {
+        const { url } = await adminUploadImage(f, (p) => {
+          setUploads(prev => prev.map(u => u.id === id ? { ...u, progress: p } : u));
+        });
+        setUploads(prev => prev.map(u => u.id === id ? { ...u, progress: 100, status: 'done', url } : u));
+        setImageUrls(prev => {
+          const merged = Array.from(new Set([...prev, url]));
+          setImages(merged.join(', '));
+          return merged;
+        });
+      } catch (e:any) {
+        setUploads(prev => prev.map(u => u.id === id ? { ...u, status: 'error', error: e?.message || 'Upload failed' } : u));
+        setError(e?.message || 'Upload failed');
+      }
+    }
+    setFiles([]);
+    setSuccess(`${arr.length} image(s) processed`);
+  };
 
   useEffect(() => {
     (async () => {
@@ -62,6 +109,9 @@ export default function AddProduct() {
     let mounted = true;
     fetchCategories()
       .then((cats) => { if (mounted) setAvailableCategories(cats); })
+      .catch(() => {});
+    fetchMaterials()
+      .then((mats) => { if (mounted) setAvailableMaterials(mats); })
       .catch(() => {});
     return () => { mounted = false; };
   }, []);
@@ -102,18 +152,22 @@ export default function AddProduct() {
           description,
           sku,
           priceCents,
+          compareAtPriceCents: (Number(compareAt) > Number(price)) ? Math.round(Number(compareAt) * 100) : undefined,
           images: imageList,
           categories: categoryList,
+          materials: Array.from(new Set([...selectedMaterials])),
           care: careText.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),
           seoTitle: seoTitle || undefined,
           seoDescription: seoDescription || undefined,
           seoKeywords: seoKeywords || undefined,
           stock: stock ? Number(stock) : undefined,
+          specs: Object.fromEntries(Object.entries(specs).filter(([,v])=>v && v.trim()))
         }),
       });
       setSuccess(`Product created: ${product.title}`);
-      setSlug(''); setTitle(''); setDescription(''); setCareText(''); setSeoTitle(''); setSeoDescription(''); setSeoKeywords(''); setSku(''); setPrice(''); setStock(''); setImages(''); setCategories(''); setFiles([]);
+      setSlug(''); setTitle(''); setDescription(''); setCareText(''); setSeoTitle(''); setSeoDescription(''); setSeoKeywords(''); setSku(''); setPrice(''); setCompareAt(''); setStock(''); setImages(''); setCategories(''); setFiles([]); setSpecs({ Fabric:'', Color:'', Neckline:'', 'Pack Contain':'', Technique:'', 'Product Length':'', Sleeves:'', Fit:'', Lining:'' });
       setSelectedCategories([]); setCategoryInput('');
+      setSelectedMaterials([]); setMaterialInput('');
     } catch (err: any) {
       setError(err?.message || 'Failed to create product');
     } finally {
@@ -167,12 +221,19 @@ export default function AddProduct() {
               <input className="w-full border rounded px-3 py-2" value={sku} onChange={(e) => setSku(e.target.value)} required />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Price (INR)</label>
+              <label className="block text-sm font-medium mb-1">Selling Price (INR)</label>
               <input type="number" step="0.01" className="w-full border rounded px-3 py-2" value={price} onChange={(e) => setPrice(e.target.value)} required />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Stock Quantity</label>
               <input type="number" min="0" className="w-full border rounded px-3 py-2" value={stock} onChange={(e) => setStock(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Original Price / MRP (INR)</label>
+              <input type="number" step="0.01" className="w-full border rounded px-3 py-2" value={compareAt} onChange={(e) => setCompareAt(e.target.value)} />
+              {Number(compareAt) > 0 && Number(price) > 0 && Number(compareAt) > Number(price) && (
+                <p className="text-xs text-muted-foreground mt-1">Discount: {Math.round(((Number(compareAt) - Number(price)) / Number(compareAt)) * 100)}%</p>
+              )}
             </div>
           </div>
           <div>
@@ -180,16 +241,44 @@ export default function AddProduct() {
             <input className="w-full border rounded px-3 py-2" value={images} onChange={(e) => setImages(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Upload Images</label>
+            <label className="block text-sm font-medium mb-1">Upload More</label>
+            <div
+              className="border-2 border-dashed rounded p-6 text-center cursor-pointer hover:bg-muted/30"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e)=>{e.preventDefault();}}
+              onDrop={(e)=>{ e.preventDefault(); handleUploadMore(e.dataTransfer.files); }}
+            >
+              <p className="text-sm">Drag & drop images here, or click to choose</p>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <button type="button" className="border px-3 py-2 rounded" onClick={() => fileInputRef.current?.click()}>Choose Files</button>
+              <span className="text-sm text-muted-foreground">Select one or multiple images</span>
+            </div>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
-              onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
-              className="w-full border rounded px-3 py-2"
+              onChange={(e) => handleUploadMore(e.target.files)}
+              className="hidden"
             />
-            {files.length > 0 && (
-              <p className="text-xs text-gray-600 mt-1">{files.length} image(s) selected (will upload on create)</p>
+            {uploads.length > 0 && (
+              <div className="space-y-2 mt-3">
+                {uploads.map(u => (
+                  <div key={u.id} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="truncate max-w-[60%]" title={u.name}>{u.name}</span>
+                        <span>{u.status==='done'?'Done':u.status==='error'?'Error':`${u.progress}%`}</span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded overflow-hidden">
+                        <div className={`h-2 ${u.status==='error'?'bg-red-500':'bg-black'}`} style={{ width: `${u.status==='done'?100:u.progress}%` }} />
+                      </div>
+                      {u.status==='error' && <div className="text-xs text-red-600">{u.error}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
             <button type="button" className="mt-2 underline" onClick={()=>setShowLibrary(true)}>Choose from Library</button>
             {/* Reorder current image URLs */}
@@ -218,7 +307,10 @@ export default function AddProduct() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Categories</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">Categories</label>
+              <button type="button" className="text-xs underline text-gray-600 hover:text-black" onClick={()=>setShowManageCats(true)}>Manage</button>
+            </div>
             <div className="border rounded p-2">
               {selectedCategories.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -265,6 +357,54 @@ export default function AddProduct() {
               <input className="w-full border rounded px-3 py-2" value={categories} onChange={(e) => setCategories(e.target.value)} />
             </div>
           </div>
+
+          {/* Materials */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">Materials</label>
+              <button type="button" className="text-xs underline text-gray-600 hover:text-black" onClick={()=>setShowManageMats(true)}>Manage</button>
+            </div>
+            <div className="border rounded p-2">
+              {selectedMaterials.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {selectedMaterials.map((slug) => {
+                    const name = availableMaterials.find(m=>m.slug===slug)?.name || slug;
+                    return (
+                      <span key={slug} className="inline-flex items-center gap-1 bg-gray-100 rounded px-2 py-1 text-sm capitalize">
+                        {name}
+                        <button type="button" className="text-gray-500 hover:text-red-600" onClick={()=>setSelectedMaterials(prev=>prev.filter(s=>s!==slug))}>×</button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <input
+                className="w-full border rounded px-3 py-2 mb-2"
+                placeholder="Type to search or add…"
+                value={materialInput}
+                onChange={(e)=>setMaterialInput(e.target.value)}
+              />
+              <div className="max-h-40 overflow-auto divide-y">
+                {availableMaterials
+                  .filter(m => !materialInput || m.name.toLowerCase().includes(materialInput.toLowerCase()) || m.slug.includes(materialInput.toLowerCase()))
+                  .map(m => (
+                    <label key={m.id} className="flex items-center justify-between py-1 cursor-pointer">
+                      <span className="capitalize">{m.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedMaterials.includes(m.slug)}
+                        onChange={(e)=>setSelectedMaterials(prev => e.target.checked ? Array.from(new Set([...prev, m.slug])) : prev.filter(s=>s!==m.slug))}
+                      />
+                    </label>
+                  ))}
+              </div>
+              {materialInput.trim() && !availableMaterials.some(m => m.slug === materialInput.trim().toLowerCase().replace(/\s+/g,'-')) && (
+                <button type="button" className="mt-2 text-sm underline" onClick={()=>{ const slug = materialInput.trim().toLowerCase().replace(/\s+/g,'-'); setSelectedMaterials(prev=>Array.from(new Set([...prev, slug]))); setMaterialInput(''); }}>
+                  + Add "{materialInput}" as new material
+                </button>
+              )}
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Care Instructions (one per line)</label>
             <textarea className="w-full border rounded px-3 py-2" rows={4} value={careText} onChange={(e)=>setCareText(e.target.value)} />
@@ -282,6 +422,45 @@ export default function AddProduct() {
           <div>
             <label className="block text-sm font-medium mb-1">SEO Description</label>
             <textarea className="w-full border rounded px-3 py-2" rows={3} value={seoDescription} onChange={(e)=>setSeoDescription(e.target.value)} />
+          </div>
+          {/* Specifications */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Fabric</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Fabric']||''} onChange={(e)=>setSpecs(s=>({...s, ['Fabric']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Color</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Color']||''} onChange={(e)=>setSpecs(s=>({...s, ['Color']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Neckline</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Neckline']||''} onChange={(e)=>setSpecs(s=>({...s, ['Neckline']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Pack Contain</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Pack Contain']||''} onChange={(e)=>setSpecs(s=>({...s, ['Pack Contain']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Technique</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Technique']||''} onChange={(e)=>setSpecs(s=>({...s, ['Technique']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Product Length</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Product Length']||''} onChange={(e)=>setSpecs(s=>({...s, ['Product Length']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Sleeves</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Sleeves']||''} onChange={(e)=>setSpecs(s=>({...s, ['Sleeves']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Fit</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Fit']||''} onChange={(e)=>setSpecs(s=>({...s, ['Fit']: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Lining</label>
+              <input className="w-full border rounded px-3 py-2" value={specs['Lining']||''} onChange={(e)=>setSpecs(s=>({...s, ['Lining']: e.target.value}))} />
+            </div>
           </div>
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
@@ -346,6 +525,146 @@ export default function AddProduct() {
                 setLibrarySelected({});
               }}>Delete Selected</button>
               <button className="bg-black text-white px-3 py-1 rounded" onClick={()=>{ const picked = Object.entries(librarySelected).filter(([,v])=>v).map(([k])=>k); if (picked.length) { const arr=[...imageUrls, ...picked]; setImageUrls(arr); setImages(arr.join(', ')); } setShowLibrary(false); }}>Add Selected</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Categories Modal */}
+      {showManageCats && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={()=>setShowManageCats(false)}>
+          <div className="bg-white max-w-xl w-full p-4 rounded shadow-lg" onClick={(e)=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Manage Categories</h3>
+              <button className="text-sm" onClick={()=>setShowManageCats(false)}>Close</button>
+            </div>
+            <div className="max-h-[60vh] overflow-auto divide-y">
+              {availableCategories.map((c) => {
+                const st = catEdits[c.id] || { name: c.name };
+                return (
+                  <div key={c.id} className="py-2 flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-500">Slug: {c.slug} • Products: {c.productCount}</div>
+                      <input
+                        className="border rounded px-2 py-1 w-full mt-1"
+                        value={st.name}
+                        onChange={(e)=>setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{}), name: e.target.value } }))}
+                      />
+                      {st.error && <div className="text-xs text-red-600 mt-1">{st.error}</div>}
+                      {st.success && <div className="text-xs text-green-600 mt-1">Saved</div>}
+                    </div>
+                    <button
+                      className="border px-3 py-1 rounded"
+                      disabled={!!st.saving}
+                      onClick={async ()=>{
+                        const name = (catEdits[c.id]?.name ?? c.name).trim();
+                        if (!name) { setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name: '' }), error: 'Name is required' } })); return; }
+                        setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), saving: true, error: undefined, success: false } }));
+                        try {
+                          const updated = await adminUpdateCategory(c.id, { name });
+                          setAvailableCategories(prev=>prev.map(x=>x.id===c.id?{ ...x, name: updated.name }:x));
+                          setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), saving: false, success: true } }));
+                          setTimeout(()=>setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), success: false } })), 1500);
+                        } catch (e:any) {
+                          setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), saving: false, error: e?.message || 'Save failed' } }));
+                        }
+                      }}
+                    >
+                      {st.saving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      className="border px-3 py-1 rounded text-red-600"
+                      onClick={async ()=>{
+                        const inUse = (c.productCount||0) > 0;
+                        const ok = confirm(inUse ? `"${c.name}" is used in ${c.productCount} product(s). Detach and delete?` : `Delete category "${c.name}"?`);
+                        if (!ok) return;
+                        try {
+                          await adminDeleteCategory(c.id, { force: inUse });
+                          setAvailableCategories(prev=>prev.filter(x=>x.id!==c.id));
+                          setSelectedCategories(prev=>prev.filter(s=>s!==c.slug));
+                        } catch (e:any) {
+                          setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name: c.name }), error: e?.message || 'Delete failed' } }));
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
+              {availableCategories.length === 0 && (
+                <div className="py-8 text-center text-sm text-gray-500">No categories yet</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Materials Modal */}
+      {showManageMats && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={()=>setShowManageMats(false)}>
+          <div className="bg-white max-w-xl w-full p-4 rounded shadow-lg" onClick={(e)=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Manage Materials</h3>
+              <button className="text-sm" onClick={()=>setShowManageMats(false)}>Close</button>
+            </div>
+            <div className="max-h-[60vh] overflow-auto divide-y">
+              {availableMaterials.map((m) => {
+                const st = matEdits[m.id] || { name: m.name };
+                return (
+                  <div key={m.id} className="py-2 flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-500">Slug: {m.slug} • Products: {m.productCount}</div>
+                      <input
+                        className="border rounded px-2 py-1 w-full mt-1"
+                        value={st.name}
+                        onChange={(e)=>setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{}), name: e.target.value } }))}
+                      />
+                      {st.error && <div className="text-xs text-red-600 mt-1">{st.error}</div>}
+                      {st.success && <div className="text-xs text-green-600 mt-1">Saved</div>}
+                    </div>
+                    <button
+                      className="border px-3 py-1 rounded"
+                      disabled={!!st.saving}
+                      onClick={async ()=>{
+                        const name = (matEdits[m.id]?.name ?? m.name).trim();
+                        if (!name) { setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name: '' }), error: 'Name is required' } })); return; }
+                        setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), saving: true, error: undefined, success: false } }));
+                        try {
+                          const updated = await adminUpdateMaterial(m.id, { name });
+                          setAvailableMaterials(prev=>prev.map(x=>x.id===m.id?{ ...x, name: updated.name }:x));
+                          setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), saving: false, success: true } }));
+                          setTimeout(()=>setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), success: false } })), 1500);
+                        } catch (e:any) {
+                          setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), saving: false, error: e?.message || 'Save failed' } }));
+                        }
+                      }}
+                    >
+                      {st.saving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      className="border px-3 py-1 rounded text-red-600"
+                      onClick={async ()=>{
+                        const inUse = (m.productCount||0) > 0;
+                        const ok = confirm(inUse ? `"${m.name}" is used in ${m.productCount} product(s). Detach and delete?` : `Delete material "${m.name}"?`);
+                        if (!ok) return;
+                        try {
+                          await adminDeleteMaterial(m.id, { force: inUse });
+                          setAvailableMaterials(prev=>prev.filter(x=>x.id!==m.id));
+                          setSelectedMaterials(prev=>prev.filter(s=>s!==m.slug));
+                        } catch (e:any) {
+                          setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name: m.name }), error: e?.message || 'Delete failed' } }));
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
+              {availableMaterials.length === 0 && (
+                <div className="py-8 text-center text-sm text-gray-500">No materials yet</div>
+              )}
             </div>
           </div>
         </div>

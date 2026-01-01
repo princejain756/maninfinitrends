@@ -13,9 +13,13 @@ import { authRouter } from './routes/auth';
 import { adminRouter } from './routes/admin';
 import { attachUser } from './middleware/auth';
 import { categoriesRouter } from './routes/categories';
+import { materialsRouter } from './routes/materials';
 import { ticketsRouter } from './routes/tickets';
 import { ordersRouter } from './routes/orders';
 import { paymentsRouter } from './routes/payments';
+import { addressesRouter } from './routes/addresses';
+import { wishlistRouter } from './routes/wishlist';
+import { placeholderRouter } from './routes/placeholder';
 
 const app = express();
 // Behind nginx reverse proxy so req.protocol reflects HTTPS
@@ -39,11 +43,15 @@ app.use('/api/auth', authRouter);
 app.use('/api/cart', cartRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/categories', categoriesRouter);
+app.use('/api/materials', materialsRouter);
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/addresses', addressesRouter);
+app.use('/api/wishlist', wishlistRouter);
+app.use('/api/placeholder', placeholderRouter);
 
 // Error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

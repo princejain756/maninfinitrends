@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useWishlistStore } from '@/store/wishlist';
 
 interface ProductCardProps {
   product: Product;
@@ -16,7 +17,8 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product, viewMode = 'grid' }: ProductCardProps) => {
   const { addItem, setCartOpen } = useCartStore();
-  const [isWishlist, setIsWishlist] = useState(false);
+  const isWishlist = useWishlistStore((s) => s.items.some((i) => i.productId === product.id));
+  const toggleWishlist = useWishlistStore((s) => s.toggle);
   const [imageLoaded, setImageLoaded] = useState(false);
   const navigate = useNavigate();
 
@@ -29,7 +31,7 @@ export const ProductCard = ({ product, viewMode = 'grid' }: ProductCardProps) =>
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsWishlist(!isWishlist);
+    toggleWishlist(product);
     toast.success(isWishlist ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
@@ -79,8 +81,8 @@ export const ProductCard = ({ product, viewMode = 'grid' }: ProductCardProps) =>
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex items-center gap-1">
                   <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-medium text-gray-700">{product.reviews.rating}</span>
-                  <span className="text-sm text-gray-400">({product.reviews.count})</span>
+                  <span className="text-sm font-medium text-gray-700">{product.reviews?.rating || 0}</span>
+                  <span className="text-sm text-gray-400">({product.reviews?.count || 0})</span>
                 </div>
               </div>
             </div>
@@ -145,12 +147,12 @@ export const ProductCard = ({ product, viewMode = 'grid' }: ProductCardProps) =>
                 -{discountPercentage}%
               </Badge>
             )}
-            {product.badges.includes('new-arrival') && (
+            {product.badges?.includes('new-arrival') && (
               <Badge className="bg-emerald-500 text-white border-0 text-xs px-2.5 py-1 font-medium">
                 New
               </Badge>
             )}
-            {product.badges.includes('eco-friendly') && (
+            {product.badges?.includes('eco-friendly') && (
               <Badge className="bg-green-600 text-white border-0 text-xs px-2.5 py-1 font-medium">
                 Eco
               </Badge>
@@ -194,9 +196,9 @@ export const ProductCard = ({ product, viewMode = 'grid' }: ProductCardProps) =>
           <div className="flex items-center gap-1.5 mb-3">
             <div className="flex items-center gap-0.5">
               <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium text-gray-700">{product.reviews.rating}</span>
+              <span className="text-sm font-medium text-gray-700">{product.reviews?.rating || 0}</span>
             </div>
-            <span className="text-xs text-gray-400">({product.reviews.count} reviews)</span>
+            <span className="text-xs text-gray-400">({product.reviews?.count || 0} reviews)</span>
           </div>
 
           {/* Price - Bold & Clear */}

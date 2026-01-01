@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { adminGetProduct, adminUpdateProduct, adminUploadImages, adminListUploads, adminAddVariant, adminUpdateVariant, adminDeleteVariant, adminFindUploadUsages, adminDetachUploads, adminDeleteUploads } from '@/lib/adminApi';
+import { adminGetProduct, adminUpdateProduct, adminUploadImages, adminListUploads, adminAddVariant, adminUpdateVariant, adminDeleteVariant, adminFindUploadUsages, adminDetachUploads, adminDeleteUploads, adminUpdateCategory, adminUpdateMaterial, adminDeleteCategory, adminDeleteMaterial } from '@/lib/adminApi';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { fetchCategories, type CategoryDto } from '@/lib/categoriesApi';
+import { fetchMaterials, type MaterialDto } from '@/lib/materialsApi';
 
 export default function AdminProductEdit() {
   const { id } = useParams();
@@ -22,12 +23,25 @@ export default function AdminProductEdit() {
   const [active, setActive] = useState(true);
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState('');
+  const [compareAt, setCompareAt] = useState('');
   const [images, setImages] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  // Specifications
+  const [specs, setSpecs] = useState<Record<string, string>>({
+    Fabric: '', Color: '', Neckline: '', 'Pack Contain': '', Technique: '', 'Product Length': '', Sleeves: '', Fit: '', Lining: ''
+  });
   const [categories, setCategories] = useState('');
   const [availableCategories, setAvailableCategories] = useState<CategoryDto[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoryInput, setCategoryInput] = useState('');
+  const [showManageCats, setShowManageCats] = useState(false);
+  const [catEdits, setCatEdits] = useState<Record<string, { name: string; saving?: boolean; error?: string; success?: boolean }>>({});
+  // Materials
+  const [availableMaterials, setAvailableMaterials] = useState<MaterialDto[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [materialInput, setMaterialInput] = useState('');
+  const [showManageMats, setShowManageMats] = useState(false);
+  const [matEdits, setMatEdits] = useState<Record<string, { name: string; saving?: boolean; error?: string; success?: boolean }>>({});
   const [stock, setStock] = useState('');
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -35,7 +49,7 @@ export default function AdminProductEdit() {
   const [librarySelected, setLibrarySelected] = useState<Record<string, boolean>>({});
   const [libraryQuery, setLibraryQuery] = useState('');
   const [librarySort, setLibrarySort] = useState<'newest'|'oldest'|'name'|'size'>('newest');
-  const [variants, setVariants] = useState<Array<{ id: string; sku: string; name: string; priceCents: number; stock: number }>>([]);
+  const [variants, setVariants] = useState<Array<{ id: string; sku: string; name: string; priceCents: number; compareAtPriceCents?: number | null; stock: number }>>([]);
   const [newVar, setNewVar] = useState<{ sku: string; name: string; price: string; stock: string }>({ sku: '', name: '', price: '', stock: '' });
 
   useEffect(() => {
@@ -56,6 +70,9 @@ export default function AdminProductEdit() {
               setSeoDescription(meta.seo.description || '');
               setSeoKeywords(Array.isArray(meta.seo.keywords) ? meta.seo.keywords.join(', ') : '');
             }
+            if (meta?.specs && typeof meta.specs === 'object') {
+              setSpecs((prev)=>({ ...prev, ...Object.fromEntries(Object.entries(meta.specs).map(([k,v]: any)=>[String(k), String(v)])) }));
+            }
           } catch {}
           desc = desc.replace(metaMatch[0], '').trim();
         }
@@ -64,27 +81,34 @@ export default function AdminProductEdit() {
         if ((p as any).seoTitle) setSeoTitle(String((p as any).seoTitle));
         if ((p as any).seoDescription) setSeoDescription(String((p as any).seoDescription));
         if ((p as any).seoKeywords) setSeoKeywords(String((p as any).seoKeywords));
+        if ((p as any).specs && typeof (p as any).specs === 'object') {
+          setSpecs((prev)=>({ ...prev, ...(p as any).specs }));
+        }
         setDescription(desc);
         setSlug(p.slug || '');
         setActive(!!p.active);
         const v = p.variants?.[0];
         setSku(v?.sku || '');
         setPrice(v ? String((v.priceCents||0)/100) : '');
+        setCompareAt(v && (v as any).compareAtPriceCents ? String(((v as any).compareAtPriceCents || 0)/100) : '');
         if (v?.inventory?.quantity != null) setStock(String(v.inventory.quantity));
-        const vs = (p.variants || []).map((vv:any)=>({ id: vv.id, sku: vv.sku, name: vv.name, priceCents: vv.priceCents, stock: vv.inventory?.quantity || 0 }));
+        const vs = (p.variants || []).map((vv:any)=>({ id: vv.id, sku: vv.sku, name: vv.name, priceCents: vv.priceCents, compareAtPriceCents: vv.compareAtPriceCents ?? null, stock: vv.inventory?.quantity || 0 }));
         setVariants(vs);
         const imgs = (p.images||[]).map((i:any)=>i.url);
         setImages(imgs.join(', '));
         setImageUrls(imgs);
         const catSlugs = (p.categories||[]).map((c:any)=>c.category?.slug||'').filter(Boolean);
-        setCategories(catSlugs.join(', '));
+        // Keep the legacy comma input empty to avoid re-adding removed categories on save
+        setCategories('');
         setSelectedCategories(catSlugs);
+        const matSlugs = (p.materials||[]).map((m:any)=>m.material?.slug||'').filter(Boolean);
+        setSelectedMaterials(matSlugs);
         setLoading(false);
       })
       .catch((e) => { setError(e?.message || 'Failed'); setLoading(false); });
   }, [id]);
 
-  useEffect(() => { fetchCategories().then(setAvailableCategories).catch(()=>{}); }, []);
+  useEffect(() => { fetchCategories().then(setAvailableCategories).catch(()=>{}); fetchMaterials().then(setAvailableMaterials).catch(()=>{}); }, []);
   useEffect(() => { setImageUrls(images.split(',').map(s=>s.trim()).filter(Boolean)); }, [images]);
   useEffect(() => {
     if (!showLibrary) return;
@@ -97,6 +121,7 @@ export default function AdminProductEdit() {
     setSaving(true);
     try {
       const priceCents = Math.round(parseFloat(price) * 100);
+      const compareAtPriceCents = (Number(compareAt) > Number(price)) ? Math.round(parseFloat(compareAt) * 100) : undefined;
       let finalImages = [...imageUrls];
       if (newFiles.length > 0) {
         const { urls } = await adminUploadImages(newFiles);
@@ -107,13 +132,15 @@ export default function AdminProductEdit() {
       if (picked.length) finalImages = [...finalImages, ...picked];
       await adminUpdateProduct(id, {
         title, description, slug, active,
-        sku, priceCents,
+        sku, priceCents, compareAtPriceCents,
         images: finalImages,
         categories: Array.from(new Set([...categories.split(',').map(s=>s.trim()).filter(Boolean), ...selectedCategories])),
+        materials: Array.from(new Set([...selectedMaterials])),
         care: careText.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),
         seoTitle: seoTitle || undefined,
         seoDescription: seoDescription || undefined,
         seoKeywords: seoKeywords || undefined,
+        specs: Object.fromEntries(Object.entries(specs).filter(([,v])=>v && v.trim())),
         stock: stock ? Number(stock) : undefined,
       });
       navigate('/admin/products');
@@ -124,8 +151,8 @@ export default function AdminProductEdit() {
     }
   };
 
-  const saveVariant = async (vr: { id: string; sku: string; name: string; priceCents: number; stock: number }) => {
-    await adminUpdateVariant(vr.id, { sku: vr.sku, name: vr.name, priceCents: vr.priceCents, stock: vr.stock });
+  const saveVariant = async (vr: { id: string; sku: string; name: string; priceCents: number; compareAtPriceCents?: number | null; stock: number }) => {
+    await adminUpdateVariant(vr.id, { sku: vr.sku, name: vr.name, priceCents: vr.priceCents, compareAtPriceCents: vr.compareAtPriceCents ?? undefined, stock: vr.stock });
   };
 
   const removeVariant = async (vid: string) => {
@@ -162,12 +189,50 @@ export default function AdminProductEdit() {
             <input className="w-full border rounded px-3 py-2" value={sku} onChange={e=>setSku(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm mb-1">Price (INR)</label>
+            <label className="block text-sm mb-1">Selling Price (INR)</label>
             <input type="number" step="0.01" className="w-full border rounded px-3 py-2" value={price} onChange={e=>setPrice(e.target.value)} required />
           </div>
           <div>
             <label className="block text-sm mb-1">Stock Quantity</label>
             <input type="number" min="0" className="w-full border rounded px-3 py-2" value={stock} onChange={e=>setStock(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Original Price / MRP (INR)</label>
+            <input type="number" step="0.01" className="w-full border rounded px-3 py-2" value={compareAt} onChange={e=>setCompareAt(e.target.value)} />
+            {Number(compareAt) > 0 && Number(price) > 0 && Number(compareAt) > Number(price) && (
+              <p className="text-xs text-muted-foreground mt-1">Discount: {Math.round(((Number(compareAt) - Number(price)) / Number(compareAt)) * 100)}%</p>
+            )}
+          </div>
+        </div>
+        {/* Materials */}
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm mb-1">Materials</label>
+            <button type="button" className="text-xs underline text-gray-600 hover:text-black" onClick={()=>setShowManageMats(true)}>Manage</button>
+          </div>
+          <div className="border rounded p-2">
+            {selectedMaterials.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedMaterials.map((slug) => (
+                  <span key={slug} className="inline-flex items-center gap-1 bg-gray-100 rounded px-2 py-1 text-sm capitalize">
+                    {availableMaterials.find(m=>m.slug===slug)?.name || slug}
+                    <button type="button" onClick={()=>setSelectedMaterials(prev=>prev.filter(s=>s!==slug))}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input className="w-full border rounded px-3 py-2 mb-2" placeholder="Type to search or add…" value={materialInput} onChange={(e)=>setMaterialInput(e.target.value)} />
+            <div className="max-h-40 overflow-auto divide-y">
+              {availableMaterials.filter(m=>!materialInput || m.name.toLowerCase().includes(materialInput.toLowerCase()) || m.slug.includes(materialInput.toLowerCase())).map(m=> (
+                <label key={m.id} className="flex items-center justify-between py-1 cursor-pointer">
+                  <span className="capitalize">{m.name}</span>
+                  <input type="checkbox" checked={selectedMaterials.includes(m.slug)} onChange={(e)=>setSelectedMaterials(prev=>e.target.checked?Array.from(new Set([...prev,m.slug])):prev.filter(s=>s!==m.slug))} />
+                </label>
+              ))}
+            </div>
+            {materialInput.trim() && !availableMaterials.some(m=>m.slug===materialInput.trim().toLowerCase().replace(/\s+/g,'-')) && (
+              <button type="button" className="mt-2 text-sm underline" onClick={()=>{ const slug=materialInput.trim().toLowerCase().replace(/\s+/g,'-'); setSelectedMaterials(prev=>Array.from(new Set([...prev, slug]))); setMaterialInput(''); }}>+ Add "{materialInput}" as new material</button>
+            )}
           </div>
         </div>
         <div>
@@ -191,6 +256,45 @@ export default function AdminProductEdit() {
         <div>
           <label className="block text-sm mb-1">SEO Description</label>
           <textarea className="w-full border rounded px-3 py-2" rows={3} value={seoDescription} onChange={(e)=>setSeoDescription(e.target.value)} />
+        </div>
+        {/* Specifications */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Fabric</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Fabric']||''} onChange={(e)=>setSpecs(s=>({...s, ['Fabric']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Color</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Color']||''} onChange={(e)=>setSpecs(s=>({...s, ['Color']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Neckline</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Neckline']||''} onChange={(e)=>setSpecs(s=>({...s, ['Neckline']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Pack Contain</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Pack Contain']||''} onChange={(e)=>setSpecs(s=>({...s, ['Pack Contain']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Technique</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Technique']||''} onChange={(e)=>setSpecs(s=>({...s, ['Technique']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Product Length</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Product Length']||''} onChange={(e)=>setSpecs(s=>({...s, ['Product Length']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Sleeves</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Sleeves']||''} onChange={(e)=>setSpecs(s=>({...s, ['Sleeves']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Fit</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Fit']||''} onChange={(e)=>setSpecs(s=>({...s, ['Fit']: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Lining</label>
+            <input className="w-full border rounded px-3 py-2" value={specs['Lining']||''} onChange={(e)=>setSpecs(s=>({...s, ['Lining']: e.target.value}))} />
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -230,7 +334,10 @@ export default function AdminProductEdit() {
             </div>
           </div>
           <div>
-            <label className="block text-sm mb-1">Categories</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm mb-1">Categories</label>
+              <button type="button" className="text-xs underline text-gray-600 hover:text-black" onClick={()=>setShowManageCats(true)}>Manage</button>
+            </div>
             <div className="border rounded p-2">
               {selectedCategories.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -332,6 +439,145 @@ export default function AdminProductEdit() {
         </div>
       )}
 
+      {/* Manage Materials Modal */}
+      {showManageMats && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={()=>setShowManageMats(false)}>
+          <div className="bg-white max-w-xl w-full p-4 rounded shadow-lg" onClick={(e)=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Manage Materials</h3>
+              <button className="text-sm" onClick={()=>setShowManageMats(false)}>Close</button>
+            </div>
+            <div className="max-h-[60vh] overflow-auto divide-y">
+              {availableMaterials.map((m) => {
+                const st = matEdits[m.id] || { name: m.name };
+                return (
+                  <div key={m.id} className="py-2 flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-500">Slug: {m.slug} • Products: {m.productCount}</div>
+                      <input
+                        className="border rounded px-2 py-1 w-full mt-1"
+                        value={st.name}
+                        onChange={(e)=>setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{}), name: e.target.value } }))}
+                      />
+                      {st.error && <div className="text-xs text-red-600 mt-1">{st.error}</div>}
+                      {st.success && <div className="text-xs text-green-600 mt-1">Saved</div>}
+                    </div>
+                    <button
+                      className="border px-3 py-1 rounded"
+                      disabled={!!st.saving}
+                      onClick={async ()=>{
+                        const name = (matEdits[m.id]?.name ?? m.name).trim();
+                        if (!name) { setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name: '' }), error: 'Name is required' } })); return; }
+                        setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), saving: true, error: undefined, success: false } }));
+                        try {
+                          const updated = await adminUpdateMaterial(m.id, { name });
+                          setAvailableMaterials(prev=>prev.map(x=>x.id===m.id?{ ...x, name: updated.name }:x));
+                          setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), saving: false, success: true } }));
+                          setTimeout(()=>setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), success: false } })), 1500);
+                        } catch (e:any) {
+                          setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name }), saving: false, error: e?.message || 'Save failed' } }));
+                        }
+                      }}
+                    >
+                      {st.saving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      className="border px-3 py-1 rounded text-red-600"
+                      onClick={async ()=>{
+                        const inUse = (m.productCount||0) > 0;
+                        const ok = confirm(inUse ? `"${m.name}" is used in ${m.productCount} product(s). Detach and delete?` : `Delete material "${m.name}"?`);
+                        if (!ok) return;
+                        try {
+                          await adminDeleteMaterial(m.id, { force: inUse });
+                          setAvailableMaterials(prev=>prev.filter(x=>x.id!==m.id));
+                          setSelectedMaterials(prev=>prev.filter(s=>s!==m.slug));
+                        } catch (e:any) {
+                          setMatEdits(prev=>({ ...prev, [m.id]: { ...(prev[m.id]||{ name: m.name }), error: e?.message || 'Delete failed' } }));
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
+              {availableMaterials.length === 0 && (
+                <div className="py-8 text-center text-sm text-gray-500">No materials yet</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Manage Categories Modal */}
+      {showManageCats && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={()=>setShowManageCats(false)}>
+          <div className="bg-white max-w-xl w-full p-4 rounded shadow-lg" onClick={(e)=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Manage Categories</h3>
+              <button className="text-sm" onClick={()=>setShowManageCats(false)}>Close</button>
+            </div>
+            <div className="max-h-[60vh] overflow-auto divide-y">
+              {availableCategories.map((c) => {
+                const st = catEdits[c.id] || { name: c.name };
+                return (
+                  <div key={c.id} className="py-2 flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-500">Slug: {c.slug} • Products: {c.productCount}</div>
+                      <input
+                        className="border rounded px-2 py-1 w-full mt-1"
+                        value={st.name}
+                        onChange={(e)=>setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{}), name: e.target.value } }))}
+                      />
+                      {st.error && <div className="text-xs text-red-600 mt-1">{st.error}</div>}
+                      {st.success && <div className="text-xs text-green-600 mt-1">Saved</div>}
+                    </div>
+                    <button
+                      className="border px-3 py-1 rounded"
+                      disabled={!!st.saving}
+                      onClick={async ()=>{
+                        const name = (catEdits[c.id]?.name ?? c.name).trim();
+                        if (!name) { setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name: '' }), error: 'Name is required' } })); return; }
+                        setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), saving: true, error: undefined, success: false } }));
+                        try {
+                          const updated = await adminUpdateCategory(c.id, { name });
+                          setAvailableCategories(prev=>prev.map(x=>x.id===c.id?{ ...x, name: updated.name }:x));
+                          setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), saving: false, success: true } }));
+                          setTimeout(()=>setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), success: false } })), 1500);
+                        } catch (e:any) {
+                          setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name }), saving: false, error: e?.message || 'Save failed' } }));
+                        }
+                      }}
+                    >
+                      {st.saving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      className="border px-3 py-1 rounded text-red-600"
+                      onClick={async ()=>{
+                        const inUse = (c.productCount||0) > 0;
+                        const ok = confirm(inUse ? `"${c.name}" is used in ${c.productCount} product(s). Detach and delete?` : `Delete category "${c.name}"?`);
+                        if (!ok) return;
+                        try {
+                          await adminDeleteCategory(c.id, { force: inUse });
+                          setAvailableCategories(prev=>prev.filter(x=>x.id!==c.id));
+                          setSelectedCategories(prev=>prev.filter(s=>s!==c.slug));
+                        } catch (e:any) {
+                          setCatEdits(prev=>({ ...prev, [c.id]: { ...(prev[c.id]||{ name: c.name }), error: e?.message || 'Delete failed' } }));
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
+              {availableCategories.length === 0 && (
+                <div className="py-8 text-center text-sm text-gray-500">No categories yet</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Variants */}
       <div className="mt-10">
         <h2 className="text-lg font-semibold mb-3">Variants (beta)</h2>
@@ -342,6 +588,7 @@ export default function AdminProductEdit() {
                 <th className="p-2 text-left">SKU</th>
                 <th className="p-2 text-left">Name</th>
                 <th className="p-2 text-left">Price (INR)</th>
+                <th className="p-2 text-left">MRP (INR)</th>
                 <th className="p-2 text-left">Stock</th>
                 <th className="p-2">Actions</th>
               </tr>
@@ -352,6 +599,7 @@ export default function AdminProductEdit() {
                   <td className="p-2"><input className="border rounded px-2 py-1 w-full" value={vr.sku} onChange={(e)=>setVariants(vs=>vs.map(v=>v.id===vr.id?{...v, sku:e.target.value}:v))} /></td>
                   <td className="p-2"><input className="border rounded px-2 py-1 w-full" value={vr.name} onChange={(e)=>setVariants(vs=>vs.map(v=>v.id===vr.id?{...v, name:e.target.value}:v))} /></td>
                   <td className="p-2"><input type="number" step="0.01" className="border rounded px-2 py-1 w-full" value={(vr.priceCents/100).toString()} onChange={(e)=>setVariants(vs=>vs.map(v=>v.id===vr.id?{...v, priceCents: Math.round(parseFloat(e.target.value||'0')*100)}:v))} /></td>
+                  <td className="p-2"><input type="number" step="0.01" className="border rounded px-2 py-1 w-full" value={((vr.compareAtPriceCents??0)/100)||'' as any} onChange={(e)=>setVariants(vs=>vs.map(v=>v.id===vr.id?{...v, compareAtPriceCents: e.target.value? Math.round(parseFloat(e.target.value||'0')*100) : null}:v))} /></td>
                   <td className="p-2"><input type="number" min="0" className="border rounded px-2 py-1 w-full" value={vr.stock} onChange={(e)=>setVariants(vs=>vs.map(v=>v.id===vr.id?{...v, stock: parseInt(e.target.value||'0',10)}:v))} /></td>
                   <td className="p-2 flex gap-2 justify-center">
                     <button className="border px-2 py-1 rounded" onClick={()=>saveVariant(vr)}>Save</button>

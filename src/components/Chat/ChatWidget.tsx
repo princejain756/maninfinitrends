@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, ShoppingBag, Truck, Ruler, Info } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Step =
   | 'root'
@@ -20,6 +21,7 @@ export const ChatWidget = () => {
     { from: 'bot', text: 'Namaste! I’m here to help. What would you like to do?' },
   ]);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -80,7 +82,7 @@ export const ChatWidget = () => {
       case 'support':
         setMessages((m) => [
           ...m,
-          { from: 'bot', text: 'Share your email or use Contact page. We’ll respond ASAP.' },
+          { from: 'bot', text: 'Choose how you’d like to reach support:' },
         ]);
         break;
     }
@@ -106,27 +108,70 @@ export const ChatWidget = () => {
     setEmail('');
   };
 
+  // Lightweight contact helpers (centralize later if needed)
+  const SUPPORT_EMAIL = 'info@maninfini.in';
+  const SUPPORT_PHONE_E164 = '+919876543210'; // dialable format
+  const WHATSAPP_PHONE = '919876543210'; // wa.me requires country code without '+'
+  const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent('Hi Maninfini Support, I need help with...')}`;
+  const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Support request')}&body=${encodeURIComponent('Hi Maninfini Support,\n\nI need help with ...\nOrder ID (if any): \n\nThanks,')}`;
+  const telUrl = `tel:${SUPPORT_PHONE_E164}`;
+
   return (
-    <div className="fixed z-[60] bottom-4 right-4 flex flex-col items-end">
+    <>
+      {/* Mobile overlay when open */}
+      {isMobile && open && (
+        <div
+          className="fixed inset-0 bg-black/30 z-[59]"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <div
+        className={
+          `fixed z-[60] flex flex-col ${
+            isMobile && open
+              ? 'inset-x-0 bottom-0 items-stretch'
+              : 'bottom-4 right-4 items-end'
+          }`
+        }
+      >
       {open && (
-        <Card className="w-80 sm:w-96 mb-3 rounded-2xl shadow-elegant border border-border/60 overflow-hidden">
+        <Card
+          className={
+            `${
+              isMobile
+                ? 'w-full h-[70vh] mb-0 rounded-t-2xl rounded-b-none'
+                : 'w-80 sm:w-96 mb-3 rounded-2xl'
+            } shadow-elegant border border-border/60 overflow-hidden bg-background`
+          }
+        >
           <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between">
             <div className="font-medium">Maninfini Assistant</div>
             <button onClick={() => setOpen(false)} className="p-1 rounded-lg hover:bg-white/20">
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div ref={bodyRef} className="max-h-96 overflow-auto p-4 space-y-3">
+          <div
+            ref={bodyRef}
+            className={`${isMobile ? 'h-[calc(70vh-108px)]' : 'max-h-96'} overflow-auto p-4 space-y-3`}
+          >
             {messages.map((m, i) => (
-              <div key={i} className={`text-sm ${m.from === 'bot' ? 'text-foreground' : 'text-muted-foreground text-right'}`}>
+              <div
+                key={i}
+                className={`text-sm max-w-[85%] ${
+                  m.from === 'bot'
+                    ? 'bg-muted text-foreground rounded-lg p-2'
+                    : 'bg-primary/10 text-foreground rounded-lg p-2 ml-auto text-right'
+                }`}
+              >
                 {m.text}
               </div>
             ))}
 
             {step === 'root' && (
-              <div className="grid grid-cols-2 gap-2 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                 {quickActions.map(({ key, label, icon: Icon }) => (
-                  <Button key={key} variant="outline" className="justify-start" onClick={() => handleQuick(key)}>
+                  <Button key={key} variant="outline" size="sm" className="justify-start" onClick={() => handleQuick(key)}>
                     <Icon className="h-4 w-4 mr-2" />
                     {label}
                   </Button>
@@ -135,17 +180,17 @@ export const ChatWidget = () => {
             )}
 
             {step === 'bestsellers' && (
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="secondary" onClick={() => handleNavigate('/shop')}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button variant="secondary" size="sm" onClick={() => handleNavigate('/shop')}>
                   All Bestsellers
                 </Button>
-                <Button variant="outline" onClick={() => handleNavigate('/collections/sarees')}>
+                <Button variant="outline" size="sm" onClick={() => handleNavigate('/collections/sarees')}>
                   Sarees
                 </Button>
-                <Button variant="outline" onClick={() => handleNavigate('/collections/kurtis')}>
+                <Button variant="outline" size="sm" onClick={() => handleNavigate('/collections/kurtis')}>
                   Kurtis
                 </Button>
-                <Button variant="outline" onClick={() => handleNavigate('/collections/jewellery')}>
+                <Button variant="outline" size="sm" onClick={() => handleNavigate('/collections/jewellery')}>
                   Jewellery
                 </Button>
               </div>
@@ -162,11 +207,31 @@ export const ChatWidget = () => {
                   ))}
                 </div>
                 <form onSubmit={handleSubmit} className="flex gap-2 pt-2">
-                  <Input placeholder="Email for size & fit tips" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input placeholder="Email for size & fit tips" value={email} onChange={(e) => setEmail(e.target.value)} className="text-sm" />
                   <Button type="submit" size="icon" aria-label="Submit email">
                     <Send className="h-4 w-4" />
                   </Button>
                 </form>
+              </div>
+            )}
+
+            {step === 'support' && (
+              <div className="space-y-3">
+                <div className="text-sm text-muted-foreground">Choose a contact option:</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Button asChild variant="secondary" size="sm">
+                    <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={mailtoUrl}>Email</a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={telUrl}>Call</a>
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  We typically respond within a few hours during 9 AM – 7 PM IST.
+                </div>
               </div>
             )}
           </div>
@@ -178,10 +243,14 @@ export const ChatWidget = () => {
           )}
         </Card>
       )}
-      <Button className="btn-primary rounded-full w-14 h-14 shadow-luxury" onClick={() => setOpen((o) => !o)} aria-label="Open chat">
-        <MessageCircle className="h-6 w-6" />
-      </Button>
+      {/* Hide the trigger while the sheet is open on mobile to avoid overlap */}
+      <div className={`${isMobile && open ? 'hidden' : 'block'} pb-[env(safe-area-inset-bottom)]` }>
+        <Button className={`btn-primary rounded-full ${isMobile ? 'w-12 h-12' : 'w-14 h-14'} shadow-luxury`} onClick={() => setOpen((o) => !o)} aria-label="Open chat">
+          <MessageCircle className="h-6 w-6" />
+        </Button>
+      </div>
     </div>
+    </>
   );
 };
 

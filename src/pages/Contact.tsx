@@ -26,9 +26,9 @@ const Contact = () => {
         </section>
         <div className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-8">
           <Card className="card-premium p-6 space-y-4">
-            <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-primary" /><a href="mailto:manita4599@gmail.com" className="hover:underline">manita4599@gmail.com</a></div>
-            <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-primary" /><span>+91 98765 43210 (9 AM – 7 PM IST)</span></div>
-            <div className="flex items-start gap-3"><MapPin className="h-4 w-4 text-primary mt-1" /><span>Flat 3093, 10th Block, Janapriya Heavens, Allalasandra, Bangalore, 560065</span></div>
+            <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-primary" /><a href="mailto:info@maninfini.in" className="hover:underline">info@maninfini.in</a></div>
+            <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-primary" /><span>9900194004 (9 AM – 7 PM IST)</span></div>
+            <div className="flex items-start gap-3"><MapPin className="h-4 w-4 text-primary mt-1" /><span>20, 6th Floor, 12th Cross, Cubbonpet, Banappa Park Road, Bengaluru-560002</span></div>
             <Button variant="outline" onClick={()=>window.dispatchEvent(new CustomEvent('mnf:chat-open'))}>Chat with us</Button>
           </Card>
           <Card className="card-glass p-6">

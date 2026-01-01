@@ -11,6 +11,13 @@ import { Newsletter } from '@/components/Home/Newsletter';
 import { InstagramFeed } from '@/components/Home/InstagramFeed';
 import SeoHead from '@/components/Seo/SeoHead';
 import { CartSidebar } from '@/components/Cart/CartSidebar';
+import ErrorBoundary from '@/components/util/ErrorBoundary';
+
+const SectionGuard = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <ErrorBoundary fallback={<div style={{padding:16,color:'#b91c1c'}}>Section failed: {label}</div>}>
+    {children}
+  </ErrorBoundary>
+);
 
 const Index = () => {
   return (
@@ -18,15 +25,15 @@ const Index = () => {
       <SeoHead canonicalPath="/" />
       <Header />
       <main>
-        <Hero />
-        <FeaturedCollections />
-        <NewArrivals />
-        <EcoSpotlight />
-        <Bestsellers />
-        <RepairsTeaser />
-        <Testimonials />
-        <Newsletter />
-        <InstagramFeed />
+        <SectionGuard label="Hero"><Hero /></SectionGuard>
+        <SectionGuard label="FeaturedCollections"><FeaturedCollections /></SectionGuard>
+        <SectionGuard label="NewArrivals"><NewArrivals /></SectionGuard>
+        <SectionGuard label="EcoSpotlight"><EcoSpotlight /></SectionGuard>
+        <SectionGuard label="Bestsellers"><Bestsellers /></SectionGuard>
+        <SectionGuard label="RepairsTeaser"><RepairsTeaser /></SectionGuard>
+        <SectionGuard label="Testimonials"><Testimonials /></SectionGuard>
+        <SectionGuard label="Newsletter"><Newsletter /></SectionGuard>
+        <SectionGuard label="InstagramFeed"><InstagramFeed /></SectionGuard>
       </main>
       {/* Global cart for Home so quick-add opens immediately */}
       <CartSidebar />

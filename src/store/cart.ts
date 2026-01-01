@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CartItem, Product } from '@/types/product';
+import { api } from '@/lib/api';
 
 interface CartStore {
   items: CartItem[];
@@ -46,12 +47,47 @@ export const useCartStore = create<CartStore>()(
             }],
           }));
         }
+
+        // Fire-and-forget server cart sync for the added product
+        // Backend will resolve to primary variant for the product.
+        api('/api/cart/items', {
+          method: 'POST',
+          body: JSON.stringify({ productId: product.id, quantity, options: variant || undefined })
+        })
+          .then(async (res) => {
+            // attach server item id to the matching local cart line
+            try {
+              const json = await (res as any)?.json?.() ?? (res as any);
+              const serverItemId = (json && json.item && json.item.id) ? json.item.id : undefined;
+              if (serverItemId) {
+                set((state) => ({
+                  items: state.items.map((it) =>
+                    it.productId === product.id && JSON.stringify(it.selectedVariant) === JSON.stringify(variant)
+                      ? { ...it, serverItemId }
+                      : it
+                  ),
+                }));
+              }
+            } catch {}
+          })
+          .catch(() => {/* ignore */});
       },
       
       removeItem: (productId) => {
-        set((state) => ({
-          items: state.items.filter((item) => item.productId !== productId),
-        }));
+        const toRemove = get().items.filter((i) => i.productId === productId && i.serverItemId);
+        // Optimistic update
+        set((state) => ({ items: state.items.filter((item) => item.productId !== productId) }));
+        // Delete server items directly when ids are known; else fallback to sync
+        if (toRemove.length > 0) {
+          toRemove.forEach((i) => {
+            if (i.serverItemId) {
+              api(`/api/cart/items/${i.serverItemId}`, { method: 'DELETE' }).catch(()=>{});
+            }
+          });
+        } else {
+          const items = get().items.map((it) => ({ productId: it.productId, quantity: it.quantity }));
+          api('/api/cart/sync', { method: 'POST', body: JSON.stringify({ items, replace: true }) }).catch(()=>{});
+        }
       },
       
       updateQuantity: (productId, quantity) => {
@@ -67,10 +103,23 @@ export const useCartStore = create<CartStore>()(
               : item
           ),
         }));
+        // Directly patch server cart line if we know its id
+        const line = get().items.find((i) => i.productId === productId && i.serverItemId);
+        if (line?.serverItemId) {
+          api(`/api/cart/items/${line.serverItemId}`, { method: 'PATCH', body: JSON.stringify({ quantity }) }).catch(()=>{});
+        } else {
+          // Fallback to syncing the whole cart
+          const payload = {
+            items: get().items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
+            replace: true as const,
+          };
+          api('/api/cart/sync', { method: 'POST', body: JSON.stringify(payload) }).catch(()=>{});
+        }
       },
       
       clearCart: () => {
         set({ items: [] });
+        api('/api/cart/sync', { method: 'POST', body: JSON.stringify({ items: [], replace: true }) }).catch(()=>{});
       },
       
       toggleCart: () => {

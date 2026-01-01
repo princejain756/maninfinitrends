@@ -6,6 +6,18 @@ import { Link } from 'react-router-dom';
 import { fetchCategories } from '@/lib/categoriesApi';
 import { fetchAllProducts } from '@/lib/productsApi';
 import { useEffect, useMemo, useState } from 'react';
+import sareeIcon from '@/assets/icons/sareebg.png';
+import salwarIcon from '@/assets/icons/salwarbg.png';
+import kurtiIcon from '@/assets/icons/kurtisbg.png';
+import indoIcon from '@/assets/icons/indo-westernbg.png';
+import fabricsIcon from '@/assets/icons/fabricsbg.png';
+import drinkwareIcon from '@/assets/icons/icons/Drinkware.webp';
+import accessoriesIcon from '@/assets/icons/icons/Accesories.webp';
+import bambooIcon from '@/assets/icons/icons/BambooMaterials.webp';
+import ecoCollectionIcon from '@/assets/icons/icons/Eco Collection.webp';
+import jewelleryIcon from '@/assets/icons/icons/jewellery.webp';
+import coffeeHuskIcon from '@/assets/icons/icons/Coffee Husk.webp';
+import riceHuskIcon from '@/assets/icons/icons/Rice Husk.webp';
 
 type CollectionCard = {
   id: string;
@@ -29,17 +41,67 @@ export const FeaturedCollections = () => {
     Promise.all([fetchCategories(), fetchAllProducts()])
       .then(([cats, prods]) => {
         if (!mounted) return;
-        // Take top 4 categories by productCount
-        const top = cats.sort((a, b) => b.productCount - a.productCount).slice(0, 4);
-        const cards: CollectionCard[] = top.map((c, i) => {
-          const img = prods.find(p => (p.category === c.slug) && p.images?.[0])?.images?.[0] || '/api/placeholder/400/500';
+        // Build a quick index of available product images per category
+        const byCategory = new Map<string, string[]>();
+        for (const p of prods) {
+          const cat = p.category || p.subcategory;
+          if (!cat) continue;
+          const imgs = Array.isArray(p.images) ? p.images : [];
+          for (const src of imgs) {
+            if (!src) continue;
+            // Skip explicit placeholders
+            if (src.includes('/api/placeholder/')) continue;
+            // Accept absolute http(s) and site-relative /uploads
+            if (src.startsWith('http') || src.startsWith('/uploads/')) {
+              const list = byCategory.get(cat) || [];
+              if (list.length < 12) list.push(src); // keep it light
+              byCategory.set(cat, list);
+            }
+          }
+        }
+
+        // Prefer categories that actually have products AND images
+        const sorted = cats.slice().sort((a, b) => b.productCount - a.productCount);
+        const withImages = sorted.filter((c) => c.productCount > 0 && (byCategory.get(c.slug)?.length || 0) > 0);
+        const withProductsNoImages = sorted.filter((c) => c.productCount > 0 && !(byCategory.get(c.slug)?.length));
+        // Final selection: up to 4 from withImages; if fewer exist, optionally fill from withProductsNoImages
+        const chosen = [...withImages, ...withProductsNoImages].slice(0, 4);
+        const curated: Record<string, string> = {
+          'sarees': sareeIcon,
+          'kurtis': kurtiIcon,
+          'salwars': salwarIcon,
+          'fabrics': fabricsIcon,
+          'indo-western': indoIcon,
+          'indo western': indoIcon,
+          'accessories': accessoriesIcon,
+          'eco-accessories': accessoriesIcon,
+          'drinkware': drinkwareIcon,
+          'bamboo': bambooIcon,
+          'bamboo-products': bambooIcon,
+          'bamboo-materials': bambooIcon,
+          'bamboomaterials': bambooIcon,
+          'materials-bamboo': bambooIcon,
+          'eco-collection': ecoCollectionIcon,
+          'eco': ecoCollectionIcon,
+          'jewellery': jewelleryIcon,
+          'jewelry': jewelleryIcon,
+          'coffee-husk': coffeeHuskIcon,
+          'coffee': coffeeHuskIcon,
+          'rice-husk': riceHuskIcon,
+          'rice': riceHuskIcon,
+          'indo-western-wear': indoIcon,
+        };
+
+        const cards: CollectionCard[] = chosen.map((c, i) => {
+          const pool = byCategory.get(c.slug) || [];
+          const pick = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : (curated[c.slug] || 'ecoCollectionIcon');
           const icon = i === 0 ? Crown : i === 1 ? Shirt : i === 2 ? Sparkles : Leaf;
           const color: 'primary' | 'secondary' | 'accent' = i === 0 ? 'primary' : (i === 3 ? 'secondary' : 'accent');
           return {
             id: c.slug,
             title: c.name,
-            description: `${c.productCount} products` ,
-            image: img,
+            description: `${c.productCount} ${c.productCount === 1 ? 'product' : 'products'}` ,
+            image: pick,
             icon,
             badge: i === 0 ? 'Bestseller' : i === 1 ? 'New' : i === 2 ? 'Trending' : 'Eco-Friendly',
             color,
@@ -99,13 +161,11 @@ export const FeaturedCollections = () => {
               <Card className="card-premium overflow-hidden h-full">
                 {/* Image Container */}
                 <div className="relative aspect-[4/5] overflow-hidden">
-                  <div 
-                    className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 transition-transform duration-700 group-hover:scale-110"
-                    style={{
-                      backgroundImage: `url("${collection.image}")`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center'
-                    }}
+                  <img
+                    src={collection.image}
+                    alt={collection.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
                   />
                   
                   {/* Overlay */}

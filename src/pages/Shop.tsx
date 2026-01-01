@@ -15,6 +15,7 @@ import { ProductCard } from '@/components/Product/ProductCard';
 // Server-driven categories
 import { fetchCategories, type CategoryDto } from '@/lib/categoriesApi';
 import { fetchAllProducts } from '@/lib/productsApi';
+import { fetchMaterials, type MaterialDto } from '@/lib/materialsApi';
 import { Filter, Grid, List, Search, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SeoHead from '@/components/Seo/SeoHead';
@@ -31,6 +32,7 @@ const Shop = () => {
     search: searchParams.get('q') || '',
     priceRange: [0, 50000],
     categories: category ? [category] : [],
+    materials: [] as string[],
     fabrics: [],
     colors: [],
     sizes: [],
@@ -44,6 +46,9 @@ const Shop = () => {
   const [categoriesList, setCategoriesList] = useState<CategoryDto[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [materialsList, setMaterialsList] = useState<MaterialDto[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(true);
+  const [materialsError, setMaterialsError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +91,11 @@ const Shop = () => {
           setCategoriesLoading(false);
         }
       });
+    // Materials
+    setMaterialsLoading(true);
+    fetchMaterials()
+      .then((data) => { if (mounted) { setMaterialsList(data); setMaterialsLoading(false); } })
+      .catch((e) => { if (mounted) { setMaterialsError(e?.message || 'Failed to load materials'); setMaterialsLoading(false); } });
     return () => {
       mounted = false;
     };
@@ -103,12 +113,31 @@ const Shop = () => {
       );
     }
 
-    // Category filter
+    // Category filter with robust slug + synonym matching
     if (filters.categories.length > 0) {
-      filtered = filtered.filter(product =>
-        filters.categories.includes(product.category) ||
-        filters.categories.includes(product.subcategory)
-      );
+      const norm = (s: string) => String(s || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const wanted = filters.categories.map(norm);
+      filtered = filtered.filter((p) => {
+        const cat = norm(p.category);
+        const sub = norm(p.subcategory);
+        return wanted.some((w) => {
+          if (w === cat || w === sub) return true;
+          // simple synonym handling
+          if (w === 'kurtis' && (sub.includes('kurti'))) return true;
+          if (w === 'salwars' && (sub.includes('salwar'))) return true;
+          if (w === 'jewellery' && (sub.includes('jewel'))) return true;
+          if (w === 'indo-western' && (sub.includes('indo-western') || sub.includes('indo') && sub.includes('western'))) return true;
+          return false;
+        });
+      });
+    }
+
+    // Materials filter (match by slug)
+    if (filters.materials.length > 0) {
+      filtered = filtered.filter(product => (product.materials||[]).some(m => filters.materials.includes(m.slug)));
     }
 
     // Price range filter
@@ -133,10 +162,10 @@ const Shop = () => {
         filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;
       case 'rating':
-        filtered.sort((a, b) => b.reviews.rating - a.reviews.rating);
+        filtered.sort((a, b) => (b.reviews?.rating || 0) - (a.reviews?.rating || 0));
         break;
       case 'popularity':
-        filtered.sort((a, b) => b.reviews.count - a.reviews.count);
+        filtered.sort((a, b) => (b.reviews?.count || 0) - (a.reviews?.count || 0));
         break;
     }
 
@@ -288,6 +317,34 @@ const Shop = () => {
                 </Card>
 
                 <Card className="p-6">
+                  <h3 className="font-semibold mb-2">Materials</h3>
+                  {materialsLoading && (<p className="text-sm text-muted-foreground">Loading…</p>)}
+                  {materialsError && (<p className="text-sm text-red-600">{materialsError}</p>)}
+                  {!materialsLoading && !materialsError && (
+                    <div className="space-y-3">
+                      {materialsList.map((mat) => (
+                        <div key={mat.id} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`mat-${mat.id}`}
+                              checked={filters.materials.includes(mat.slug)}
+                              onCheckedChange={(checked) => {
+                                const newMaterials = checked
+                                  ? [...filters.materials, mat.slug]
+                                  : filters.materials.filter(s => s !== mat.slug);
+                                handleFilterChange('materials', newMaterials);
+                              }}
+                            />
+                            <Label htmlFor={`mat-${mat.id}`} className="text-sm capitalize">{mat.name}</Label>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{mat.productCount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="p-6">
                   <h3 className="font-semibold mb-4">Price Range</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
@@ -331,7 +388,7 @@ const Shop = () => {
                   Showing {filteredProducts.length} of {allProducts.length} products
                 </p>
                 
-                {filters.categories.length > 0 && (
+                {(filters.categories.length > 0 || filters.materials.length > 0) && (
                   <div className="flex items-center gap-2">
                     {filters.categories.map((cat) => (
                       <Badge key={cat} variant="secondary" className="gap-1">
@@ -340,6 +397,20 @@ const Shop = () => {
                           onClick={() => {
                             const newCategories = filters.categories.filter(c => c !== cat);
                             handleFilterChange('categories', newCategories);
+                          }}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                    {filters.materials.map((mat) => (
+                      <Badge key={mat} variant="secondary" className="gap-1">
+                        {materialsList.find(m=>m.slug===mat)?.name || mat}
+                        <button
+                          onClick={() => {
+                            const newMaterials = filters.materials.filter(s => s !== mat);
+                            handleFilterChange('materials', newMaterials);
                           }}
                           className="ml-1 hover:text-destructive"
                         >
@@ -392,6 +463,7 @@ const Shop = () => {
                     fabrics: [],
                     colors: [],
                     sizes: [],
+                    materials: [],
                     inStock: false
                   })}>
                     Clear All Filters

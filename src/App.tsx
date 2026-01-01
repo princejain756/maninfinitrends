@@ -11,7 +11,6 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import ChatWidget from "./components/Chat/ChatWidget";
-import ExitIntent from "./components/Marketing/ExitIntent";
 import FomoPopups from "./components/Marketing/FomoPopups";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -28,6 +27,7 @@ import Refunds from "./pages/Policies/Refunds";
 import Cookies from "./pages/Policies/Cookies";
 import Collection from "./pages/Collections/Collection";
 import CategoryRedirect from "./pages/Redirects/CategoryRedirect";
+import ScrollToTop from "./components/ScrollToTop";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Bamboo from "./pages/Eco/Bamboo";
@@ -45,6 +45,12 @@ import AdminTicketsList from "./pages/Admin/Tickets/List";
 import AccountLogin from "./pages/Account/Login";
 import AccountRegister from "./pages/Account/Register";
 import AccountOrders from "./pages/Account/Orders";
+import AccountIndex from "./pages/Account/Index";
+import AccountAddresses from "./pages/Account/Addresses";
+import AccountForgot from "./pages/Account/Forgot";
+import AccountReset from "./pages/Account/Reset";
+import AccountOrderDetail from "./pages/Account/OrderDetail";
+import Wishlist from "./pages/Wishlist";
 
 const queryClient = new QueryClient();
 
@@ -54,12 +60,14 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/shop/:category" element={<Shop />} />
           <Route path="/product/:handle" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/checkout" element={<Checkout />} />
           {/* Marketing & Support */}
           <Route path="/about" element={<About />} />
@@ -96,9 +104,14 @@ const App = () => (
             <Route path="tickets" element={<AdminTicketsList />} />
           </Route>
           {/* Account */}
+          <Route path="/account" element={<AccountIndex />} />
           <Route path="/account/login" element={<AccountLogin />} />
           <Route path="/account/register" element={<AccountRegister />} />
+          <Route path="/account/forgot" element={<AccountForgot />} />
+          <Route path="/account/reset" element={<AccountReset />} />
           <Route path="/account/orders" element={<AccountOrders />} />
+          <Route path="/account/orders/:id" element={<AccountOrderDetail />} />
+          <Route path="/account/addresses" element={<AccountAddresses />} />
           {/* Friendly routes */}
           <Route path="/eco-collection" element={<CategoryRedirect to="/collections/eco-collection" />} />
           <Route path="/jewellery" element={<CategoryRedirect to="/shop/jewellery" />} />
@@ -111,7 +124,6 @@ const App = () => (
         <OrganizationJsonLd />
         <WebSiteJsonLd />
         <ChatWidget />
-        <ExitIntent />
         <FomoPopups />
       </BrowserRouter>
     </TooltipProvider>

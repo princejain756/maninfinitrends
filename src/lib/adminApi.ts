@@ -50,6 +50,14 @@ export async function adminRefundPayment(orderId: Id) {
   return api(`/api/admin/orders/${orderId}/refund`, { method: 'POST' });
 }
 
+export async function adminCaptureCodPayment(orderId: Id) {
+  return api(`/api/admin/orders/${orderId}/capture-cod`, { method: 'POST' });
+}
+
+export async function adminDeleteOrder(orderId: Id) {
+  return api(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+}
+
 // Upload one or more images for products. Returns array of absolute URLs.
 export async function adminUploadImages(files: File[]): Promise<{ urls: string[] }> {
   const form = new FormData();
@@ -64,6 +72,40 @@ export async function adminUploadImages(files: File[]): Promise<{ urls: string[]
     throw new Error(text || 'Failed to upload images');
   }
   return res.json();
+}
+
+// Upload a single image with progress callback
+export function adminUploadImage(file: File, onProgress?: (percent: number) => void): Promise<{ url: string }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/admin/uploads`);
+    xhr.withCredentials = true;
+    xhr.responseType = 'json';
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = xhr.response || JSON.parse(xhr.responseText);
+          const url = Array.isArray(data?.urls) ? data.urls[0] : undefined;
+          if (url) resolve({ url }); else reject(new Error('No URL returned'));
+        } catch (e) {
+          reject(new Error('Invalid upload response'));
+        }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error while uploading'));
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 100);
+        onProgress(pct);
+      };
+    }
+    const form = new FormData();
+    form.append('files', file);
+    xhr.send(form);
+  });
 }
 
 export async function adminListUploads(): Promise<{ files: { name: string; url: string; size: number; mtime: number }[] }> {
@@ -123,4 +165,24 @@ export async function adminUpdateVariant(variantId: Id, data: { sku?: string; na
 
 export async function adminDeleteVariant(variantId: Id) {
   return api(`/api/admin/variants/${variantId}`, { method: 'DELETE' });
+}
+
+// Categories: update name and/or slug
+export async function adminUpdateCategory(id: Id, data: { name?: string; slug?: string }) {
+  return api(`/api/admin/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+// Materials: update name and/or slug
+export async function adminUpdateMaterial(id: Id, data: { name?: string; slug?: string }) {
+  return api(`/api/admin/materials/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+export async function adminDeleteCategory(id: Id, opts?: { force?: boolean }) {
+  const q = opts?.force ? '?force=1' : '';
+  return api(`/api/admin/categories/${id}${q}`, { method: 'DELETE' });
+}
+
+export async function adminDeleteMaterial(id: Id, opts?: { force?: boolean }) {
+  const q = opts?.force ? '?force=1' : '';
+  return api(`/api/admin/materials/${id}${q}`, { method: 'DELETE' });
 }

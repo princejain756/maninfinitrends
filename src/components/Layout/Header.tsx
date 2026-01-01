@@ -10,13 +10,18 @@ import kurtiIcon from '@/assets/icons/kurtisbg.png';
 import indoIcon from '@/assets/icons/indo-westernbg.png';
 import fabricsIcon from '@/assets/icons/fabricsbg.png';
 import { useCartStore } from '@/store/cart';
+import { useWishlistStore } from '@/store/wishlist';
+import { api } from '@/lib/api';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export const Header = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [user, setUser] = useState<{ email?: string; role?: string } | null>(null);
   // Derive live cart count from store for instant updates
   const cartCount = useCartStore((s) => s.items.reduce((t, i) => t + i.quantity, 0));
+  const wishlistCount = useWishlistStore((s) => s.items.length);
   const [timeLeft, setTimeLeft] = useState<{d:number;h:number;m:number;s:number}>({ d: 0, h: 0, m: 0, s: 0 });
 
   useEffect(() => {
@@ -58,6 +63,27 @@ export const Header = () => {
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
   }, []);
+
+  // Check auth status for header user menu
+  useEffect(() => {
+    let mounted = true;
+    api<{ user: any }>('/api/auth/me')
+      .then(async (res) => { 
+        if (!mounted) return; 
+        setUser(res.user); 
+        if (res.user) {
+          try { await useWishlistStore.getState().mergeWithServer(); } catch {}
+        }
+      })
+      .catch(() => { if (mounted) setUser(null); });
+    return () => { mounted = false; };
+  }, []);
+
+  const signOut = async () => {
+    try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
+    setUser(null);
+    navigate('/account/login');
+  };
 
   // Removed API fetch for cart badge; Zustand store keeps it reactive.
 
@@ -184,24 +210,61 @@ export const Header = () => {
               </button>
 
               {/* User Account */}
-              <button
-                className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors"
-                aria-label="Account"
-                onClick={() => navigate('/account/login')}
-              >
-                <User className="h-5 w-5" />
-              </button>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors"
+                      aria-label="Account menu"
+                    >
+                      <User className="h-5 w-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {user?.email && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
+                        {user.email}
+                      </div>
+                    )}
+                    <DropdownMenuSeparator />
+                    {user?.role === 'ADMIN' ? (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/admin')}>Admin Dashboard</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/orders')}>Manage Orders</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/products')}>Manage Products</DropdownMenuItem>
+                      </>
+                    ) : (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/account/orders')}>My Orders</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/account/addresses')}>My Addresses</DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <button
+                  className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors"
+                  aria-label="Account"
+                  onClick={() => navigate('/account')}
+                >
+                  <User className="h-5 w-5" />
+                </button>
+              )}
 
               {/* Wishlist */}
               <button
                 className="hidden md:flex p-2 rounded-xl hover:bg-muted transition-colors relative"
                 aria-label="Wishlist"
-                onClick={() => navigate('/shop')}
+                onClick={() => navigate('/wishlist')}
               >
                 <Heart className="h-5 w-5" />
-                <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent text-accent-foreground text-[10px] leading-none px-1 border-2 border-background shadow-sm">
-                  3
-                </span>
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent text-accent-foreground text-[10px] leading-none px-1 border-2 border-background shadow-sm">
+                    {wishlistCount}
+                  </span>
+                )}
               </button>
 
               {/* Cart */}
@@ -303,9 +366,15 @@ export const Header = () => {
                   <a href="/contact" className="block py-2 text-muted-foreground hover:text-foreground transition-colors">
                     Contact Support
                   </a>
-                  <a href="/account" className="block py-2 text-muted-foreground hover:text-foreground transition-colors">
-                    My Account
-                  </a>
+                  {user?.role === 'ADMIN' ? (
+                    <a href="/admin" className="block py-2 text-muted-foreground hover:text-foreground transition-colors">
+                      Admin Dashboard
+                    </a>
+                  ) : (
+                    <a href="/account" className="block py-2 text-muted-foreground hover:text-foreground transition-colors">
+                      My Account
+                    </a>
+                  )}
                 </div>
               </nav>
             </motion.div>

@@ -64,7 +64,7 @@ function makeEvent(all: Product[], opts?: { focusProduct?: Product | null; onPro
   if (!all.length) throw new Error('no products')
   // 65% chance to highlight the current product when on its page
   const prod = (onProductPage && Math.random() < 0.65 && focusProduct) ? focusProduct : sample(all)
-  const image = prod.images?.[0] || '/api/placeholder/300/300'
+  const image = prod.images?.[0] || '/src/assets/icons/icons/Eco Collection.webp'
 
   // A/B variant per event
   const variant = Math.random() < 0.5 ? 'A' : 'B'

@@ -7,6 +7,7 @@ export interface ServerProductVariant {
   sku: string;
   name: string;
   priceCents: number;
+  compareAtPriceCents?: number | null;
   currency: string;
   inventory?: { quantity: number } | null;
 }
@@ -21,6 +22,10 @@ export interface ServerProductCategoryLink {
   category: { slug: string; name: string };
 }
 
+export interface ServerProductMaterialLink {
+  material: { slug: string; name: string };
+}
+
 export interface ServerProduct {
   id: string;
   slug: string;
@@ -32,7 +37,9 @@ export interface ServerProduct {
   variants: ServerProductVariant[];
   images: ServerProductImage[];
   categories?: ServerProductCategoryLink[];
+  materials?: ServerProductMaterialLink[];
   care?: string[] | null;
+  specs?: Record<string, any> | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
   seoKeywords?: string | null;
@@ -60,30 +67,56 @@ export function mapServerProductToUi(p: ServerProduct): Product {
   }
   const primaryVariant = p.variants?.[0];
   const priceRupees = primaryVariant ? Math.round(primaryVariant.priceCents / 100) : 0;
+  const compareAtRupees = primaryVariant?.compareAtPriceCents ? Math.round(primaryVariant.compareAtPriceCents / 100) : undefined;
   const stock = (p.variants || []).reduce((sum, v) => sum + (v.inventory?.quantity || 0), 0);
   const primaryCategory = p.categories?.[0]?.category?.slug || 'general';
+  const materials = (p as any).materials && Array.isArray((p as any).materials)
+    ? ((p as any).materials as ServerProductMaterialLink[]).map((m) => ({ slug: m.material?.slug || '', name: m.material?.name || '' })).filter(x=>x.slug)
+    : [];
 
   // Prefer DB meta fields when present
   if (Array.isArray((p as any).care)) care = (p as any).care as string[];
   if ((p as any).seoTitle) seoTitle = String((p as any).seoTitle);
   if ((p as any).seoDescription) seoDescription = String((p as any).seoDescription);
-  if ((p as any).seoKeywords) seoKeywords = String((p as any).seoKeywords).split(',').map(s=>s.trim()).filter(Boolean);
+  if ((p as any).seoKeywords && typeof (p as any).seoKeywords === 'string') {
+    seoKeywords = String((p as any).seoKeywords).split(',').map(s=>s.trim()).filter(Boolean);
+  }
 
-  return {
+  // Create a text-only short description (strip HTML/inline styles)
+  const descHtml = description || '';
+  const descNoTags = descHtml
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[^]*?-->/g, ' ') // comments
+    .replace(/<[^>]+>/g, ' ') // tags
+    .replace(/\s+/g, ' ') // collapse whitespace
+    .trim();
+  const short = descNoTags || p.title;
+
+  // Map category to one of the allowed values
+  const normalizedCategory = (() => {
+    const cat = primaryCategory.toLowerCase();
+    if (cat.includes('jewel')) return 'jewellery' as const;
+    if (cat.includes('eco')) return 'eco' as const;
+    if (cat.includes('accessor')) return 'accessories' as const;
+    return 'apparel' as const;
+  })();
+
+  const ui: Product = {
     id: p.id,
     title: p.title,
     handle: p.slug,
     sku: primaryVariant?.sku || '',
-    category: (primaryCategory as any) || 'general',
+    category: normalizedCategory,
     subcategory: primaryCategory || 'general',
     price: priceRupees,
-    compareAtPrice: undefined,
+    compareAtPrice: compareAtRupees && compareAtRupees > priceRupees ? compareAtRupees : undefined,
     taxRate: 0.18,
     stock,
     images: (p.images || []).map((img) => img.url),
     description: description,
-    shortDescription: p.description ? String(p.description).slice(0, 140) : p.title,
-    attributes: {},
+    shortDescription: short.slice(0, 160),
+    attributes: (p as any).specs ? (p as any).specs as any : {},
+    materials: Array.isArray(materials) ? materials : [],
     care,
     badges: [],
     relatedIds: [],
@@ -91,7 +124,10 @@ export function mapServerProductToUi(p: ServerProduct): Product {
     seo: { title: seoTitle || p.title, description: seoDescription || p.description || '', keywords: seoKeywords },
     createdAt: new Date(p.createdAt).toISOString(),
     updatedAt: new Date(p.updatedAt).toISOString(),
-  };
+  } as Product;
+  // Final guard to ensure shape consistency
+  if (!Array.isArray(ui.materials)) (ui as any).materials = [];
+  return ui;
 }
 
 export async function fetchAllProducts(): Promise<Product[]> {

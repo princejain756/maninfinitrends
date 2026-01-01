@@ -165,24 +165,24 @@ export const Footer = () => {
                   <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
                     <div className="text-sm text-muted-foreground">
-                      <p>Flat no 3093, 10th Block,</p>
-                      <p>Janapriya Heavens, Allalasandra,</p>
-                      <p>Bangalore, Karnataka, 560065</p>
+                      <p>20, 6th Floor, 12th Cross,</p>
+                      <p>Cubbonpet, Banappa Park Road,</p>
+                      <p>Bengaluru-560002</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-primary flex-shrink-0" />
                     <a 
-                      href="mailto:manita4599@gmail.com"
+                      href="mailto:info@maninfini.in"
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      manita4599@gmail.com
+                      info@maninfini.in
                     </a>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="text-sm text-muted-foreground">
-                      +91 98765 43210
+                      9900194004
                     </span>
                   </div>
                 </div>

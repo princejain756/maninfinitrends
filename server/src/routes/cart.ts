@@ -4,9 +4,29 @@ import { prisma } from '../db/client';
 
 export const cartRouter = Router();
 
-const addItemSchema = z.object({
-  variantId: z.string().uuid(),
-  quantity: z.number().int().min(1).max(99),
+const addItemSchema = z
+  .object({
+    variantId: z.string().uuid().optional(),
+    productId: z.string().uuid().optional(),
+    slug: z.string().min(1).optional(),
+    quantity: z.number().int().min(1).max(99),
+    options: z.record(z.string(), z.string()).optional(),
+  })
+  .refine((d) => !!(d.variantId || d.productId || d.slug), {
+    message: 'variantId, productId or slug is required',
+    path: ['variantId'],
+  });
+
+const syncSchema = z.object({
+  items: z.array(
+    z.object({
+      productId: z.string().uuid().optional(),
+      slug: z.string().min(1).optional(),
+      quantity: z.number().int().min(1).max(99),
+      options: z.record(z.string(), z.string()).optional(),
+    })
+  ).min(0),
+  replace: z.boolean().default(true),
 });
 
 cartRouter.get('/', async (req, res, next) => {
@@ -63,7 +83,15 @@ cartRouter.post('/items', async (req, res, next) => {
         cart = await tx.cart.create({ data: { sessionId: session!.id } });
       }
 
-      const variant = await tx.productVariant.findUnique({ where: { id: body.variantId }, include: { inventory: true } });
+      let variant = null as any;
+      if (body.variantId) {
+        variant = await tx.productVariant.findUnique({ where: { id: body.variantId }, include: { inventory: true } });
+      } else {
+        const product = body.productId
+          ? await tx.product.findUnique({ where: { id: body.productId }, include: { variants: { include: { inventory: true } } } })
+          : await tx.product.findUnique({ where: { slug: body.slug! }, include: { variants: { include: { inventory: true } } } });
+        variant = product?.variants?.[0] || null;
+      }
       if (!variant) throw new Error('Variant not found');
 
       // Optional inventory check
@@ -72,21 +100,23 @@ cartRouter.post('/items', async (req, res, next) => {
       }
 
       const existing = await tx.cartItem.findUnique({
-        where: { cartId_variantId: { cartId: cart.id, variantId: body.variantId } },
+        where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
       });
 
+      const options: any = body.options ? (body.options as any) : undefined;
       const item = existing
         ? await tx.cartItem.update({
             where: { id: existing.id },
-            data: { quantity: existing.quantity + body.quantity, unitPrice: variant.priceCents, currency: variant.currency },
+            data: { quantity: existing.quantity + body.quantity, unitPrice: variant.priceCents, currency: variant.currency, options },
           })
         : await tx.cartItem.create({
             data: {
               cartId: cart.id,
-              variantId: body.variantId,
+              variantId: variant.id,
               quantity: body.quantity,
               unitPrice: variant.priceCents,
               currency: variant.currency,
+              options,
             },
           });
 
@@ -134,3 +164,49 @@ cartRouter.delete('/items/:id', async (req, res, next) => {
   }
 });
 
+// Syncs the server cart with a list of product ids/slugs + quantities.
+// Default behavior: replace existing cart items for the session.
+cartRouter.post('/sync', async (req, res, next) => {
+  try {
+    const sid = req.sessionId!;
+    const body = syncSchema.parse(req.body);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Ensure active cart for session
+      let cart = await tx.cart.findFirst({ where: { session: { token: sid }, status: 'ACTIVE' } });
+      if (!cart) {
+        const session = await tx.session.findUnique({ where: { token: sid } });
+        cart = await tx.cart.create({ data: { sessionId: session!.id } });
+      }
+
+      if (body.replace) {
+        await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+      }
+
+      for (const it of body.items) {
+        const product = it.productId
+          ? await tx.product.findUnique({ where: { id: it.productId }, include: { variants: { include: { inventory: true } } } })
+          : await tx.product.findUnique({ where: { slug: it.slug! }, include: { variants: { include: { inventory: true } } } });
+        if (!product || !product.variants[0]) throw new Error('Product/variant not found');
+        const v = product.variants[0];
+        if (v.inventory && v.inventory.quantity < it.quantity) throw new Error('Insufficient inventory');
+
+        const existing = await tx.cartItem.findUnique({ where: { cartId_variantId: { cartId: cart.id, variantId: v.id } } });
+        if (existing) {
+          await tx.cartItem.update({ where: { id: existing.id }, data: { quantity: it.quantity, unitPrice: v.priceCents, currency: v.currency, options: (it as any).options || undefined } });
+        } else {
+          await tx.cartItem.create({ data: { cartId: cart.id, variantId: v.id, quantity: it.quantity, unitPrice: v.priceCents, currency: v.currency, options: (it as any).options || undefined } });
+        }
+      }
+
+      const updated = await tx.cart.findUnique({ where: { id: cart.id }, include: { items: true } });
+      const totalCents = (updated?.items || []).reduce((s, x) => s + x.unitPrice * x.quantity, 0);
+      const count = (updated?.items || []).reduce((s, x) => s + x.quantity, 0);
+      return { id: cart.id, totalCents, count };
+    });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});

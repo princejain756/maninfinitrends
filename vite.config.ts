@@ -14,6 +14,15 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
+  build: {
+    // Production minification using terser (stable for our codebase)
+    minify: 'terser',
+    sourcemap: false,
+    terserOptions: {
+      compress: { passes: 2, toplevel: false },
+      mangle: { toplevel: false },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

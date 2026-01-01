@@ -23,7 +23,9 @@ export default function AdminOrdersList() {
           <table className="min-w-full border text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="p-2 text-left">ID</th>
+                <th className="p-2 text-left">Order</th>
+                <th className="p-2 text-left">Customer</th>
+                <th className="p-2 text-left">Size/Material</th>
                 <th className="p-2">Status</th>
                 <th className="p-2">Total</th>
                 <th className="p-2">Currency</th>
@@ -34,7 +36,18 @@ export default function AdminOrdersList() {
             <tbody>
               {items.map((o) => (
                 <tr key={o.id} className="border-t">
-                  <td className="p-2 text-left">{o.id.slice(0,8)}…</td>
+                  <td className="p-2 text-left font-mono">#{(o.orderNumber ?? 0).toString().padStart(3, '0')}</td>
+                  <td className="p-2 text-left whitespace-nowrap max-w-[220px] overflow-hidden text-ellipsis">
+                    {o.user?.name?.trim() || o.shippingAddress?.name || o.user?.email || 'Guest'}
+                  </td>
+                  <td className="p-2 text-left whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis">
+                    {(() => {
+                      const values: string[] = (o.items || []).map((it: any) => (it.options?.Size || it.options?.Length || it.options?.Material || '')).filter(Boolean);
+                      if (values.length === 0) return '—';
+                      const uniq = Array.from(new Set(values));
+                      return uniq.join(', ');
+                    })()}
+                  </td>
                   <td className="p-2">{o.status}</td>
                   <td className="p-2">₹{Math.round((o.totalCents||0)/100)}</td>
                   <td className="p-2">{o.currency}</td>
@@ -51,4 +64,3 @@ export default function AdminOrdersList() {
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart';
+import { useWishlistStore } from '@/store/wishlist';
 import { CartItem as CartItemType } from '@/types/product';
 import { Minus, Plus, X } from 'lucide-react';
 
@@ -9,6 +10,7 @@ interface CartItemProps {
 
 export const CartItem = ({ item }: CartItemProps) => {
   const { updateQuantity, removeItem } = useCartStore();
+  const addWishlist = useWishlistStore((s)=>s.add);
 
   return (
     <div className="flex items-start gap-4 py-4">
@@ -68,6 +70,12 @@ export const CartItem = ({ item }: CartItemProps) => {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="mt-2">
+          <Button variant="ghost" size="sm" className="px-0 h-6 text-xs text-muted-foreground hover:text-foreground" onClick={()=>{ addWishlist(item.product); removeItem(item.productId); }}>
+            Move to Wishlist
+          </Button>
         </div>
       </div>
 

@@ -1,0 +1,149 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Header } from '@/components/Layout/Header';
+import { Footer } from '@/components/Layout/Footer';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { api } from '@/lib/api';
+
+function formatInr(cents: number | undefined) {
+  const r = Math.round((cents || 0) / 100);
+  return `₹${r.toLocaleString()}`;
+}
+
+export default function OrderDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [order, setOrder] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { user } = await api<{ user: any }>('/api/auth/me');
+        if (!user) { navigate('/account/login'); return; }
+        const data = await api(`/api/orders/${id}`);
+        if (!mounted) return;
+        setOrder(data); setLoading(false);
+      } catch (e: any) {
+        if (!mounted) return;
+        setError(e?.message || 'Failed to load'); setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [id, navigate]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (error || !order) return <div className="p-6 text-red-600">{error || 'Not found'}</div>;
+
+  const ship = order.shippingAddress;
+  const bill = order.billingAddress;
+
+  const renderDateTime = (iso: string) => {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+    const time = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+    return (
+      <span className="inline-flex flex-col leading-tight">
+        <span>{date}</span>
+        <span className="text-muted-foreground">{time}</span>
+      </span>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="pt-20">
+        <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold">Order #{(order.orderNumber ?? 0).toString().padStart(3, '0')}</h1>
+              <p className="text-sm text-muted-foreground">Placed on {renderDateTime(order.createdAt)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/account/orders')}>Back to orders</Button>
+              <Button className="btn-primary" onClick={handlePrint}>Print invoice</Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="p-4 md:col-span-2">
+              <h2 className="text-lg font-medium mb-3">Items</h2>
+              <div className="space-y-3">
+                {order.items.map((it: any) => {
+                  const p = it.variant?.product;
+                  const img = p?.images?.[0]?.url || '/api/placeholder/100/100';
+                  return (
+                    <div key={it.id} className="flex items-center gap-3">
+                      <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                        <img src={img} alt={p?.title || 'Product'} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium line-clamp-1">{p?.title} {it.variant?.name ? `— ${it.variant.name}` : ''}</div>
+                        <div className="text-sm text-muted-foreground">Qty: {it.quantity}</div>
+                      </div>
+                      <div className="text-sm font-medium">{formatInr(it.unitPrice)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <Separator className="my-4" />
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-semibold">{formatInr(order.totalCents)}</span>
+              </div>
+            </Card>
+            <div className="space-y-6">
+              <Card className="p-4">
+                <h2 className="text-lg font-medium mb-2">Shipping address</h2>
+                {ship ? (
+                  <address className="not-italic text-sm text-muted-foreground">
+                    <div className="font-medium text-foreground">{ship.name}</div>
+                    <div>{ship.line1}{ship.line2 ? `, ${ship.line2}` : ''}</div>
+                    <div>{ship.city}, {ship.state} {ship.postalCode}</div>
+                    <div>India</div>
+                    {ship.phone && <div>Phone: {ship.phone}</div>}
+                  </address>
+                ) : (<p className="text-sm text-muted-foreground">Not provided</p>)}
+              </Card>
+              <Card className="p-4">
+                <h2 className="text-lg font-medium mb-2">Payment</h2>
+                {order.payments?.some((p:any)=>p.provider==='cod' && p.status==='CAPTURED') && (
+                  <div className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-medium mb-2">COD Received</div>
+                )}
+                {order.payments?.length ? (
+                  <div className="space-y-2 text-sm">
+                    {order.payments.map((p: any) => (
+                      <div key={p.id} className="flex items-center justify-between">
+                        <div className="text-muted-foreground">{p.provider === 'cod' ? 'Cash on Delivery' : p.provider} — {p.status}</div>
+                        <div className="text-right">{renderDateTime(p.createdAt)}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+                )}
+              </Card>
+            </div>
+          </div>
+
+          <style>{`
+            @media print {
+              header, footer, nav, .btn, button, a { display: none !important; }
+              main { padding-top: 0 !important; }
+            }
+          `}</style>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}

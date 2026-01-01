@@ -9,15 +9,14 @@ export const ReadingProgress = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = (window.scrollY / totalHeight) * 100;
-      setScrollProgress(Math.min(progress, 100));
-    };
+      const totalHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const progress = Math.min((window.scrollY / totalHeight) * 100, 100);
+      setScrollProgress(progress);
 
-    const handleReadingProgress = () => {
+      // Derive reading stats from the same scroll calculation
       const wordsPerMinute = 200; // Average reading speed
       const totalWords = 2500; // Estimated words on page
-      const scrolledWords = Math.floor((scrollProgress / 100) * totalWords);
+      const scrolledWords = Math.floor((progress / 100) * totalWords);
       const timeSpent = Math.floor((scrolledWords / wordsPerMinute) * 60); // in seconds
 
       setWordsRead(scrolledWords);
@@ -25,13 +24,13 @@ export const ReadingProgress = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('scroll', handleReadingProgress);
+    // Initialize once on mount
+    handleScroll();
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('scroll', handleReadingProgress);
     };
-  }, [scrollProgress]);
+  }, []);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);

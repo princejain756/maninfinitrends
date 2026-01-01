@@ -55,10 +55,10 @@ export const Bestsellers = () => {
             price: p.price,
             originalPrice: p.compareAtPrice ?? null,
             image: p.images[0],
-            rating: p.reviews.rating,
-            reviews: p.reviews.count,
+            rating: p.reviews?.rating || 0,
+            reviews: p.reviews?.count || 0,
             sales: undefined,
-            tag: toTag(p.badges as unknown as string[]),
+            tag: toTag(p.badges || []),
             category: p.subcategory || p.category,
           }));
         setBestsellers(mapped);

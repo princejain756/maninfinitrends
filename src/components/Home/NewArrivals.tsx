@@ -1,13 +1,11 @@
 import { useRef, useState, type MouseEvent, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Heart, ShoppingBag, Eye, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { fetchAllProducts } from '@/lib/productsApi';
 import type { Product } from '@/types/product';
-import { useCartStore } from '@/store/cart';
-import { toast } from 'sonner';
+// Temporarily avoid store interactions here to rule out feedback loops
 import { useNavigate } from 'react-router-dom';
 
 type NAItem = {
@@ -41,9 +39,7 @@ export const NewArrivals = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [wishlist, setWishlist] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { addItem, setCartOpen } = useCartStore();
   const navigate = useNavigate();
 
   const itemsToShow = 4;
@@ -55,26 +51,32 @@ export const NewArrivals = () => {
     fetchAllProducts()
       .then((data) => {
         if (!mounted) return;
-        setAllProducts(data);
-        const mapped: NAItem[] = data
-          .filter(p => hasRealImage(p.images))
-          .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
-          .slice(0, 8)
-          .map(p => ({
-            id: p.id,
-            name: p.title,
-            price: p.price,
-            originalPrice: p.compareAtPrice ?? null,
-            image: p.images[0],
-            rating: p.reviews.rating,
-            reviews: p.reviews.count,
-            tag: toTag(p.badges as unknown as string[]),
-            inStock: (p.stock ?? 0) > 0,
-            category: p.subcategory || p.category,
-            handle: p.handle,
-          }));
-        setItems(mapped);
-        setLoading(false);
+        try {
+          setAllProducts(data);
+          const safe = Array.isArray(data) ? data : [];
+          const mapped: NAItem[] = safe
+            .filter((p:any) => hasRealImage(p?.images))
+            .sort((a:any, b:any) => String(b?.createdAt||'').localeCompare(String(a?.createdAt||'')))
+            .slice(0, 8)
+            .map((p:any) => ({
+              id: String(p?.id||''),
+              name: String(p?.title||'Product'),
+              price: Number(p?.price||0),
+              originalPrice: p?.compareAtPrice ? Number(p.compareAtPrice) : null,
+              image: String((p?.images||['/api/placeholder/600/600'])[0]),
+              rating: Number(p?.reviews?.rating||0),
+              reviews: Number(p?.reviews?.count||0),
+              tag: toTag((p?.badges as any[])?.map(String) || []),
+              inStock: Number(p?.stock||0) > 0,
+              category: String(p?.subcategory || p?.category || ''),
+              handle: String(p?.handle||''),
+            }));
+          setItems(mapped);
+        } catch (err:any) {
+          setError(err?.message || 'Failed to prepare products');
+        } finally {
+          setLoading(false);
+        }
       })
       .catch((e) => {
         if (!mounted) return;
@@ -97,22 +99,6 @@ export const NewArrivals = () => {
     navigate(`/product/${handle}`);
   };
 
-  const handleQuickAdd = (productId: string) => {
-    const full = allProducts.find(p => p.id === productId);
-    if (!full) return;
-    addItem(full, 1);
-    setCartOpen(true);
-    toast.success('Added to cart!');
-  };
-
-  const toggleWishlist = (productId: string) => {
-    setWishlist(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
-  };
-
   const getTagColor = (tag: string) => {
     switch (tag.toLowerCase()) {
       case 'eco-friendly':
@@ -133,28 +119,17 @@ export const NewArrivals = () => {
     <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-12">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
+        <div>
           <h2 className="text-display text-3xl sm:text-4xl font-semibold text-foreground mb-2">
             New Arrivals
           </h2>
           <p className="text-muted-foreground">
             Fresh designs added weekly • Handpicked by our curators
           </p>
-        </motion.div>
+        </div>
 
         {/* Navigation Buttons */}
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="hidden md:flex items-center gap-2"
-        >
+        <div className="hidden md:flex items-center gap-2">
           <Button
             variant="outline"
             size="icon"
@@ -173,7 +148,7 @@ export const NewArrivals = () => {
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-        </motion.div>
+        </div>
       </div>
 
       {/* Products Carousel */}
@@ -184,22 +159,22 @@ export const NewArrivals = () => {
         <div className="text-center text-red-600 py-8">{error}</div>
       )}
       <div className="relative overflow-hidden">
-        <motion.div
+        <div
           ref={scrollContainerRef}
           className="flex gap-6"
-          animate={{ x: `-${currentIndex * (100 / itemsToShow)}%` }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          style={{ width: `${(items.length / itemsToShow) * 100}%` }}
+          style={{ 
+            width: `${Math.max(1, items.length / itemsToShow) * 100}%`,
+            transform: items.length > itemsToShow 
+              ? `translateX(-${currentIndex * (100 / itemsToShow)}%)` 
+              : 'translateX(0%)',
+            transition: 'transform 0.5s ease-in-out'
+          }}
         >
           {items.map((product, index) => (
-            <motion.div
+            <div
               key={product.id}
               className="flex-shrink-0"
               style={{ width: `${100 / Math.max(items.length, 1)}%` }}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
             >
               <Card className="card-premium overflow-hidden group">
                 {/* Image Container */}
@@ -213,41 +188,11 @@ export const NewArrivals = () => {
                     }}
                   />
 
-                  {/* Overlay Actions */}
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute top-4 right-4 flex flex-col gap-2">
-                      <button
-                        onClick={() => toggleWishlist(product.id)}
-                        className="w-8 h-8 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
-                      >
-                        <Heart 
-                          className={`h-4 w-4 ${
-                            wishlist.includes(product.id) 
-                              ? 'fill-red-500 text-red-500' 
-                              : 'text-muted-foreground'
-                          }`} 
-                        />
-                      </button>
-                      <button
-                        onClick={(e) => handleViewProduct(e, product.handle)}
-                        className="w-9 h-9 rounded-full bg-white/90 text-gray-900 shadow-sm flex items-center justify-center hover:bg-white transition-colors border border-gray-100"
-                        aria-label="View product details"
-                        title="View details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 z-10">
-                      <Button 
-                        className="w-full btn-primary"
-                        disabled={!product.inStock}
-                        onClick={(e) => { e.stopPropagation(); if (product.inStock) handleQuickAdd(product.id); }}
-                      >
-                        <ShoppingBag className="h-4 w-4 mr-2" />
-                        {product.inStock ? 'Add to Cart' : 'Out of Stock'}
-                      </Button>
-                    </div>
+                  {/* Simple CTA */}
+                  <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 z-10">
+                    <Button className="w-full btn-primary" onClick={(e) => handleViewProduct(e, product.handle)}>
+                      View Details
+                    </Button>
                   </div>
 
                   {/* Tag */}
@@ -308,9 +253,9 @@ export const NewArrivals = () => {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
 
       {/* Mobile Scroll Indicators */}

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 const instagramPosts = [
   {
     id: 1,
-    image: '/api/placeholder/300/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     likes: 234,
     comments: 18,
     caption: 'Stunning Banarasi silk saree perfect for festive occasions! ✨ #ManinfiniTrends #EthnicWear',
@@ -16,7 +16,7 @@ const instagramPosts = [
   },
   {
     id: 2,
-    image: '/api/placeholder/300/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     likes: 189,
     comments: 12,
     caption: 'Behind the scenes: Handcrafting our eco-friendly bamboo collection 🌿',
@@ -25,7 +25,7 @@ const instagramPosts = [
   },
   {
     id: 3,
-    image: '/api/placeholder/300/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     likes: 156,
     comments: 9,
     caption: 'Kundan jewellery that tells a story of tradition and elegance 💎',
@@ -34,7 +34,7 @@ const instagramPosts = [
   },
   {
     id: 4,
-    image: '/api/placeholder/300/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     likes: 298,
     comments: 24,
     caption: 'Customer love! Thank you @priya_style for choosing sustainable fashion 💚',
@@ -43,7 +43,7 @@ const instagramPosts = [
   },
   {
     id: 5,
-    image: '/api/placeholder/300/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     likes: 167,
     comments: 15,
     caption: 'Coffee husk accessories - turning waste into beautiful products ♻️',
@@ -52,7 +52,7 @@ const instagramPosts = [
   },
   {
     id: 6,
-    image: '/api/placeholder/300/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     likes: 203,
     comments: 11,
     caption: 'Artisan spotlight: Meet the talented hands behind our handblock prints 🎨',

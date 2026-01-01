@@ -3,7 +3,7 @@ import { generatedProducts } from './new_products.generated';
 
 // Helper: choose eco products for dedicated collection
 const ecoProductIds: string[] = generatedProducts.map(p => p.id);
-const ecoCollectionImage: string = generatedProducts[0]?.images?.[0] || '/api/placeholder/800/600';
+const ecoCollectionImage: string = generatedProducts[0]?.images?.[0] || '/src/assets/icons/icons/Eco Collection.webp';
 
 export const products: Product[] = [
   // Bags & Accessories
@@ -371,8 +371,8 @@ export const products: Product[] = [
     taxRate: 0.05,
     stock: 30,
     images: [
-      '/api/placeholder/400/600',
-      '/api/placeholder/400/600'
+      '/src/assets/icons/icons/BambooMaterials.webp',
+      '/src/assets/icons/icons/BambooMaterials.webp'
     ],
     description: 'Comfortable and sustainable bamboo silk kurti with elegant A-line silhouette. Perfect for both casual and formal occasions.',
     shortDescription: 'Sustainable bamboo silk A-line kurti',
@@ -409,9 +409,9 @@ export const products: Product[] = [
     taxRate: 0.03,
     stock: 12,
     images: [
-      '/api/placeholder/500/500',
-      '/api/placeholder/500/500',
-      '/api/placeholder/500/500'
+      '/src/assets/icons/icons/jewellery.webp',
+      '/src/assets/icons/icons/jewellery.webp',
+      '/src/assets/icons/icons/jewellery.webp'
     ],
     model3d: {
       glb: '/models/kundan-choker.glb',
@@ -451,8 +451,8 @@ export const products: Product[] = [
     taxRate: 0.05,
     stock: 20,
     images: [
-      '/api/placeholder/400/400',
-      '/api/placeholder/400/400'
+      '/src/assets/icons/icons/Coffee Husk.webp',
+      '/src/assets/icons/icons/Coffee Husk.webp'
     ],
     description: 'Innovative handbag made from upcycled coffee husks. Waterproof, durable, and completely biodegradable.',
     shortDescription: 'Upcycled coffee husk handbag',
@@ -489,8 +489,8 @@ export const products: Product[] = [
     taxRate: 0.03,
     stock: 45,
     images: [
-      '/api/placeholder/300/300',
-      '/api/placeholder/300/300'
+      '/src/assets/icons/icons/jewellery.webp',
+      '/src/assets/icons/icons/jewellery.webp'
     ],
     description: 'Classic gold plated jhumka earrings with intricate filigree work and pearl drops.',
     shortDescription: 'Traditional jhumka earrings with pearls',
@@ -522,7 +522,7 @@ export const collections: Collection[] = [
     title: 'Wedding Collection',
     handle: 'wedding-collection',
     description: 'Exquisite bridal wear and accessories for your special day',
-    image: '/api/placeholder/800/600',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     productIds: ['saree-001', 'jewellery-001'],
     seo: {
       title: 'Wedding Collection - Bridal Sarees & Jewellery - Maninfini Trends',
@@ -549,7 +549,7 @@ export const categories: Category[] = [
     title: 'Apparel',
     handle: 'apparel',
     description: 'Traditional and contemporary ethnic wear',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     attributes: ['size', 'fabric', 'color', 'occasion']
   },
   {
@@ -557,7 +557,7 @@ export const categories: Category[] = [
     title: 'Sarees',
     handle: 'sarees',
     description: 'Elegant sarees for every occasion',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     parentId: 'apparel',
     attributes: ['fabric', 'weave', 'length', 'blouse', 'occasion', 'care']
   },
@@ -566,7 +566,7 @@ export const categories: Category[] = [
     title: 'Jewellery',
     handle: 'jewellery',
     description: 'Exclusive imitation jewellery collection',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     attributes: ['material', 'plating', 'stones', 'occasion', 'weight']
   },
   // Eco Home & Living
@@ -575,7 +575,7 @@ export const categories: Category[] = [
     title: 'Eco Home & Living',
     handle: 'eco',
     description: 'Sustainable homeware made from bio-composites',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     attributes: ['material', 'care', 'eco']
   },
   {
@@ -583,7 +583,7 @@ export const categories: Category[] = [
     title: 'Planters',
     handle: 'planters',
     description: 'Eco-friendly planters and pots',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     parentId: 'eco',
     attributes: ['material', 'size', 'finish', 'care']
   },
@@ -592,7 +592,7 @@ export const categories: Category[] = [
     title: 'Tableware',
     handle: 'tableware',
     description: 'Plates, bowls and serving essentials',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     parentId: 'eco',
     attributes: ['material', 'care', 'finish']
   },
@@ -601,7 +601,7 @@ export const categories: Category[] = [
     title: 'Drinkware',
     handle: 'drinkware',
     description: 'Cups, tumblers and bottles',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     parentId: 'eco',
     attributes: ['material', 'care', 'capacity']
   },
@@ -610,7 +610,7 @@ export const categories: Category[] = [
     title: 'Cutlery',
     handle: 'cutlery',
     description: 'Eco-friendly spoons, forks and more',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     parentId: 'eco',
     attributes: ['material', 'care']
   },
@@ -619,7 +619,7 @@ export const categories: Category[] = [
     title: 'Storage',
     handle: 'storage',
     description: 'Boxes, baskets and organizers',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     parentId: 'eco',
     attributes: ['material', 'capacity', 'care']
   },
@@ -628,7 +628,7 @@ export const categories: Category[] = [
     title: 'Kitchenware',
     handle: 'kitchenware',
     description: 'Boards, strainers and prep tools',
-    image: '/api/placeholder/400/300',
+    image: '/src/assets/icons/icons/Eco Collection.webp',
     parentId: 'eco',
     attributes: ['material', 'care']
   }

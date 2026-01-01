@@ -251,7 +251,7 @@ const Privacy = () => {
                       Email: privacy@maninfini.in
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Phone: +91 98765 43210
+                      Phone: 9900194004
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Data Protection Officer

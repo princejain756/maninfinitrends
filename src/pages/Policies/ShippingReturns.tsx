@@ -398,10 +398,10 @@ const ShippingReturns = () => {
                       Email: support@maninfini.in
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Phone: +91 98765 43210
+                      Phone: 9900194004
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      WhatsApp: +91 98765 43210
+                      WhatsApp: 9900194004
                     </div>
                   </div>
                 </CardContent>
