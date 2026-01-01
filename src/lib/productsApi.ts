@@ -62,7 +62,7 @@ export function mapServerProductToUi(p: ServerProduct): Product {
         seoDescription = meta.seo.description || undefined;
         if (Array.isArray(meta.seo.keywords)) seoKeywords = meta.seo.keywords.map((x: any) => String(x));
       }
-    } catch {}
+    } catch { }
     description = description.replace(metaMatch[0], '').trim();
   }
   const primaryVariant = p.variants?.[0];
@@ -71,7 +71,7 @@ export function mapServerProductToUi(p: ServerProduct): Product {
   const stock = (p.variants || []).reduce((sum, v) => sum + (v.inventory?.quantity || 0), 0);
   const primaryCategory = p.categories?.[0]?.category?.slug || 'general';
   const materials = (p as any).materials && Array.isArray((p as any).materials)
-    ? ((p as any).materials as ServerProductMaterialLink[]).map((m) => ({ slug: m.material?.slug || '', name: m.material?.name || '' })).filter(x=>x.slug)
+    ? ((p as any).materials as ServerProductMaterialLink[]).map((m) => ({ slug: m.material?.slug || '', name: m.material?.name || '' })).filter(x => x.slug)
     : [];
 
   // Prefer DB meta fields when present
@@ -79,7 +79,7 @@ export function mapServerProductToUi(p: ServerProduct): Product {
   if ((p as any).seoTitle) seoTitle = String((p as any).seoTitle);
   if ((p as any).seoDescription) seoDescription = String((p as any).seoDescription);
   if ((p as any).seoKeywords && typeof (p as any).seoKeywords === 'string') {
-    seoKeywords = String((p as any).seoKeywords).split(',').map(s=>s.trim()).filter(Boolean);
+    seoKeywords = String((p as any).seoKeywords).split(',').map(s => s.trim()).filter(Boolean);
   }
 
   // Create a text-only short description (strip HTML/inline styles)
@@ -122,8 +122,8 @@ export function mapServerProductToUi(p: ServerProduct): Product {
     relatedIds: [],
     reviews: { rating: 0, count: 0 },
     seo: { title: seoTitle || p.title, description: seoDescription || p.description || '', keywords: seoKeywords },
-    createdAt: new Date(p.createdAt).toISOString(),
-    updatedAt: new Date(p.updatedAt).toISOString(),
+    createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
   } as Product;
   // Final guard to ensure shape consistency
   if (!Array.isArray(ui.materials)) (ui as any).materials = [];

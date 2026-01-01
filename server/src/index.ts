@@ -4,6 +4,7 @@ import fs from 'fs';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cors from 'cors';
+import compression from 'compression';
 import { env } from './env';
 import { cookies, sessionMiddleware } from './middleware/session';
 import { cartRouter } from './routes/cart';
@@ -25,18 +26,35 @@ const app = express();
 // Behind nginx reverse proxy so req.protocol reflects HTTPS
 app.set('trust proxy', 1);
 
+// Enable gzip compression for all responses
+app.use(compression());
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookies);
-app.use(cors({ origin: env.ORIGIN, credentials: true }));
+// Allow multiple origins (comma-separated in ORIGIN). Also allow localhost variants during development.
+const allowedOrigins = (env.ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(sessionMiddleware);
 app.use(attachUser);
 
 // Static uploads directory served from dist/uploads for consistency in pm2/tsx and compiled modes
 const uploadDir = path.resolve(process.cwd(), 'dist/uploads');
-try { fs.mkdirSync(uploadDir, { recursive: true }); } catch {}
-app.use('/uploads', express.static(uploadDir));
+try { fs.mkdirSync(uploadDir, { recursive: true }); } catch { }
+// Serve uploads with aggressive caching (1 year) since filenames are unique
+app.use('/uploads', express.static(uploadDir, {
+  maxAge: '1y',
+  immutable: true,
+  etag: true,
+}));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRouter);

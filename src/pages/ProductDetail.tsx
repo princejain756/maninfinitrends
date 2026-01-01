@@ -27,16 +27,16 @@ const ProductDetail = () => {
   const { handle } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCartStore();
-  
+
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
   const subc = String(product?.subcategory || '').toLowerCase();
-  const needsSize = ['sarees','salwars','salwar','kurtis','indo-western','indowestern','indo western'].some(k=>subc.includes(k));
+  const needsSize = ['sarees', 'salwars', 'salwar', 'kurtis', 'indo-western', 'indowestern', 'indo western'].some(k => subc.includes(k));
   const isFabric = subc.includes('fabric');
-  const materialOptions = (Array.isArray(product?.materials) ? product!.materials : []).map(m=>m.name);
-  const sizeOptions = ['XS','S','M','L','XL','XXL'];
+  const materialOptions = (Array.isArray(product?.materials) ? product!.materials : []).map(m => m.name);
+  const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   const requireSelection = () => {
     if (isFabric) {
@@ -125,11 +125,11 @@ const ProductDetail = () => {
             if (mounted) setReviews(data);
           }
         }
-      } catch {}
+      } catch { }
       try {
         const me = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' });
-        if (me.ok) { const { user } = await me.json(); if (mounted) setAuthUser(user||null); }
-      } catch {}
+        if (me.ok) { const { user } = await me.json(); if (mounted) setAuthUser(user || null); }
+      } catch { }
     })();
     return () => { mounted = false; };
   }, [handle]);
@@ -192,9 +192,9 @@ const ProductDetail = () => {
     toast.success(isWishlist ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
-  
 
-  const discountPercentage = product.compareAtPrice 
+
+  const discountPercentage = product.compareAtPrice
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
     : 0;
 
@@ -210,50 +210,50 @@ const ProductDetail = () => {
         image={images[0] && images[0].startsWith('http') ? images[0] : undefined}
       />
       <Header />
-      
+
       <main className="pt-20 pb-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* JSON-LD: Breadcrumb + Product */}
           {product && (
-          <JsonLd
-            data={[
-              {
-                '@context': 'https://schema.org',
-                '@type': 'BreadcrumbList',
-                itemListElement: [
-                  { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
-                  { '@type': 'ListItem', position: 2, name: 'Shop', item: `${BASE_URL}/shop` },
-                  { '@type': 'ListItem', position: 3, name: String(product.category), item: `${BASE_URL}/shop/${product.category}` },
-                  { '@type': 'ListItem', position: 4, name: String(product.title), item: `${BASE_URL}/product/${product.handle}` },
-                ],
-              },
-              {
-                '@context': 'https://schema.org',
-                '@type': 'Product',
-                name: String(product.title),
-                image: images.filter(Boolean).map((src) => (src.startsWith('http') ? src : `${BASE_URL}${src}`)),
-                description: String(product.seo?.description || product.shortDescription || product.description || ''),
-                sku: String(product.sku || ''),
-                brand: { '@type': 'Brand', name: BRAND },
-                url: `${BASE_URL}/product/${product.handle}`,
-                offers: {
-                  '@type': 'Offer',
-                  priceCurrency: 'INR',
-                  price: Number(product.price || 0),
-                  availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-                  url: `${BASE_URL}/product/${product.handle}`,
-                  itemCondition: 'https://schema.org/NewCondition',
+            <JsonLd
+              data={[
+                {
+                  '@context': 'https://schema.org',
+                  '@type': 'BreadcrumbList',
+                  itemListElement: [
+                    { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
+                    { '@type': 'ListItem', position: 2, name: 'Shop', item: `${BASE_URL}/shop` },
+                    { '@type': 'ListItem', position: 3, name: String(product.category), item: `${BASE_URL}/shop/${product.category}` },
+                    { '@type': 'ListItem', position: 4, name: String(product.title), item: `${BASE_URL}/product/${product.handle}` },
+                  ],
                 },
-                aggregateRating: product.reviews?.count
-                  ? {
+                {
+                  '@context': 'https://schema.org',
+                  '@type': 'Product',
+                  name: String(product.title),
+                  image: images.filter(Boolean).map((src) => (src.startsWith('http') ? src : `${BASE_URL}${src}`)),
+                  description: String(product.seo?.description || product.shortDescription || product.description || ''),
+                  sku: String(product.sku || ''),
+                  brand: { '@type': 'Brand', name: BRAND },
+                  url: `${BASE_URL}/product/${product.handle}`,
+                  offers: {
+                    '@type': 'Offer',
+                    priceCurrency: 'INR',
+                    price: Number(product.price || 0),
+                    availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                    url: `${BASE_URL}/product/${product.handle}`,
+                    itemCondition: 'https://schema.org/NewCondition',
+                  },
+                  aggregateRating: product.reviews?.count
+                    ? {
                       '@type': 'AggregateRating',
                       ratingValue: Number(product.reviews?.rating || 0 || 0),
                       reviewCount: Number(product.reviews?.count || 0 || 0),
                     }
-                  : undefined,
-              },
-            ]}
-          />
+                    : undefined,
+                },
+              ]}
+            />
           )}
           {/* Breadcrumb */}
           <nav className="flex items-center text-sm text-muted-foreground mb-8">
@@ -286,7 +286,7 @@ const ProductDetail = () => {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">No image</div>
                 )}
-                
+
                 {/* Navigation arrows */}
                 {images.length > 1 && (
                   <>
@@ -294,7 +294,7 @@ const ProductDetail = () => {
                       variant="secondary"
                       size="sm"
                       className="absolute left-4 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => setSelectedImageIndex(prev => 
+                      onClick={() => setSelectedImageIndex(prev =>
                         prev === 0 ? images.length - 1 : prev - 1
                       )}
                     >
@@ -304,7 +304,7 @@ const ProductDetail = () => {
                       variant="secondary"
                       size="sm"
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => setSelectedImageIndex(prev => 
+                      onClick={() => setSelectedImageIndex(prev =>
                         prev === images.length - 1 ? 0 : prev + 1
                       )}
                     >
@@ -344,11 +344,10 @@ const ProductDetail = () => {
                   {images.map((image, index) => (
                     <button
                       key={index}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === selectedImageIndex 
-                          ? 'border-primary' 
-                          : 'border-transparent hover:border-muted-foreground'
-                      }`}
+                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${index === selectedImageIndex
+                        ? 'border-primary'
+                        : 'border-transparent hover:border-muted-foreground'
+                        }`}
                       onClick={() => setSelectedImageIndex(index)}
                     >
                       <img
@@ -374,7 +373,7 @@ const ProductDetail = () => {
                 {Array.isArray(product?.materials) && product?.materials?.length === 1 && (
                   <div className="text-sm text-muted-foreground mb-2">Material: <span className="capitalize">{product?.materials?.[0]?.name}</span></div>
                 )}
-                
+
                 <h1 className="text-display text-3xl lg:text-4xl font-semibold text-foreground mb-4">
                   {product.title}
                 </h1>
@@ -384,11 +383,10 @@ const ProductDetail = () => {
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className={`h-5 w-5 ${
-                          star <= product.reviews?.rating || 0
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-muted-foreground'
-                        }`}
+                        className={`h-5 w-5 ${star <= product.reviews?.rating || 0
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-muted-foreground'
+                          }`}
                       />
                     ))}
                     <span className="text-sm font-medium ml-2">{product.reviews?.rating || 0}</span>
@@ -453,8 +451,8 @@ const ProductDetail = () => {
                           <button
                             key={m.slug}
                             type="button"
-                            className={`px-3 py-1 rounded border text-sm ${selectedVariants['Material']===m.name?'bg-black text-white':'bg-background'}`}
-                            onClick={()=>setSelectedVariants(v=>({ ...v, Material: m.name }))}
+                            className={`px-3 py-1 rounded border text-sm ${selectedVariants['Material'] === m.name ? 'bg-black text-white' : 'bg-background'}`}
+                            onClick={() => setSelectedVariants(v => ({ ...v, Material: m.name }))}
                           >
                             {m.name}
                           </button>
@@ -470,13 +468,13 @@ const ProductDetail = () => {
                           <button
                             key={s}
                             type="button"
-                            className={`px-3 py-1 rounded border text-sm ${selectedVariants['Size']===s?'bg-black text-white':'bg-background'}`}
-                            onClick={()=>setSelectedVariants((v)=>({ ...v, Size: s }))}
+                            className={`px-3 py-1 rounded border text-sm ${selectedVariants['Size'] === s ? 'bg-black text-white' : 'bg-background'}`}
+                            onClick={() => setSelectedVariants((v) => ({ ...v, Size: s }))}
                           >{s}</button>
                         ))}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        Not sure? <button className="underline" onClick={()=>navigate('/size-guide')}>See size guide</button>
+                        Not sure? <button className="underline" onClick={() => navigate('/size-guide')}>See size guide</button>
                       </div>
                     </div>
                   )}
@@ -484,12 +482,12 @@ const ProductDetail = () => {
                     <div>
                       <Label className="mb-2 block">Fabric Length</Label>
                       <div className="flex flex-wrap gap-2">
-                        {[1,2,3,4,5,6,7,8,9,10].map((m)=>(
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((m) => (
                           <button
                             key={m}
                             type="button"
-                            className={`px-3 py-1 rounded border text-sm ${selectedVariants['Length']===`${m} m`?'bg-black text-white':'bg-background'}`}
-                            onClick={()=>setSelectedVariants((v)=>({ ...v, Length: `${m} m` }))}
+                            className={`px-3 py-1 rounded border text-sm ${selectedVariants['Length'] === `${m} m` ? 'bg-black text-white' : 'bg-background'}`}
+                            onClick={() => setSelectedVariants((v) => ({ ...v, Length: `${m} m` }))}
                           >{m} m</button>
                         ))}
                       </div>
@@ -516,8 +514,8 @@ const ProductDetail = () => {
                           Find my size
                         </button>
                       </div>
-                      <Select 
-                        value={selectedVariants.size || ''} 
+                      <Select
+                        value={selectedVariants.size || ''}
                         onValueChange={(value) => setSelectedVariants(prev => ({ ...prev, size: value }))}
                       >
                         <SelectTrigger className="w-full">
@@ -525,9 +523,9 @@ const ProductDetail = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {(Array.isArray(product.attributes.sizes)
-                              ? (product.attributes.sizes as any[]).map(String)
-                              : String(product.attributes.sizes).split(/\s*,\s*/)
-                            ).filter(Boolean).map((size: string) => (
+                            ? (product.attributes.sizes as any[]).map(String)
+                            : String(product.attributes.sizes).split(/\s*,\s*/)
+                          ).filter(Boolean).map((size: string) => (
                             <SelectItem key={size} value={size}>{size}</SelectItem>
                           ))}
                         </SelectContent>
@@ -564,29 +562,29 @@ const ProductDetail = () => {
               {/* Action Buttons */}
               <div className="space-y-3">
                 <div className="flex gap-3">
-                  <Button 
-                    size="lg" 
-                    className="btn-primary flex-1" 
+                  <Button
+                    size="lg"
+                    className="btn-primary flex-1"
                     onClick={handleAddToCart}
                     disabled={product.stock === 0}
                   >
                     <ShoppingCart className="h-5 w-5 mr-2" />
                     Add to Cart
                   </Button>
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
+                  <Button
+                    size="lg"
+                    variant="outline"
                     onClick={handleBuyNow}
                     disabled={product.stock === 0}
                   >
                     Buy Now
                   </Button>
                 </div>
-                
+
                 <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1" 
+                  <Button
+                    variant="outline"
+                    className="flex-1"
                     onClick={handleWishlist}
                   >
                     <Heart className={`h-4 w-4 mr-2 ${isWishlist ? 'fill-current text-red-500' : ''}`} />
@@ -597,15 +595,15 @@ const ProductDetail = () => {
                     const title = product.seo?.title || product.title;
                     const text = `${title} — ${url}`;
                     if (navigator.share) {
-                      navigator.share({ title, text, url }).catch(()=>{});
+                      navigator.share({ title, text, url }).catch(() => { });
                     } else if (navigator.clipboard && window.isSecureContext) {
-                      navigator.clipboard.writeText(url).then(()=>{
+                      navigator.clipboard.writeText(url).then(() => {
                         toast.success('Link copied to clipboard');
-                      }).catch(()=>{
-                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,'_blank');
+                      }).catch(() => {
+                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
                       });
                     } else {
-                      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,'_blank');
+                      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
                     }
                   }}>
                     <Share2 className="h-4 w-4 mr-2" />
@@ -644,13 +642,13 @@ const ProductDetail = () => {
                 <TabsTrigger value="care">Care Instructions</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="description" className="mt-6">
                 <Card className="p-6">
                   <div className="prose prose-gray max-w-none" dangerouslySetInnerHTML={{ __html: String(product.description || '') }} />
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="specifications" className="mt-6">
                 <Card className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -661,16 +659,16 @@ const ProductDetail = () => {
                           ? Object.values(value as any).filter(Boolean).join(', ') || JSON.stringify(value)
                           : String(value ?? '');
                       return (
-                      <div key={key} className="flex justify-between py-2 border-b">
-                        <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                        <span className="text-muted-foreground">{display}</span>
-                      </div>
+                        <div key={key} className="flex justify-between py-2 border-b">
+                          <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                          <span className="text-muted-foreground">{display}</span>
+                        </div>
                       );
                     })}
                   </div>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="care" className="mt-6">
                 <Card className="p-6">
                   {product.care && product.care.length > 0 ? (
@@ -687,14 +685,14 @@ const ProductDetail = () => {
                   )}
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="reviews" className="mt-6">
                 <Card className="p-6 space-y-4">
                   <div className="flex items-center gap-2">
-                    {[1,2,3,4,5].map(i => (
-                      <Star key={i} className={`h-5 w-5 ${i <= Math.round((reviews.reduce((s,r)=>s+r.rating,0)/(reviews.length||1))||0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Star key={i} className={`h-5 w-5 ${i <= Math.round((reviews.reduce((s, r) => s + r.rating, 0) / (reviews.length || 1)) || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
                     ))}
-                    <span className="text-sm text-muted-foreground">{reviews.length} review{reviews.length===1?'':'s'}</span>
+                    <span className="text-sm text-muted-foreground">{reviews.length} review{reviews.length === 1 ? '' : 's'}</span>
                   </div>
 
                   {authUser ? (
@@ -706,21 +704,26 @@ const ProductDetail = () => {
                       });
                       if (res.ok) {
                         const r = await res.json();
-                        setReviews(prev => [{ id: r.id, rating: r.rating, title: r.title, body: r.body, createdAt: r.createdAt, user: { name: authUser?.name || authUser?.email } }, ...prev.filter(x=>x.id!==r.id)]);
+                        setReviews(prev => [{ id: r.id, rating: r.rating, title: r.title, body: r.body, createdAt: r.createdAt, user: { name: authUser?.name || authUser?.email } }, ...prev.filter(x => x.id !== r.id)]);
                         setMyBody(''); setMyTitle('');
                       }
                     }}>
                       <div className="flex items-center gap-2">
                         <span className="text-sm">Your rating:</span>
-                        {[1,2,3,4,5].map(i => (
-                          <button key={i} type="button" onClick={()=>setMyRating(i)}>
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setMyRating(i)}
+                            className="cursor-pointer"
+                          >
                             <Star className={`h-5 w-5 ${i <= myRating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
                           </button>
                         ))}
                       </div>
-                      <input className="w-full border rounded px-3 py-2" placeholder="Title (optional)" value={myTitle} onChange={e=>setMyTitle(e.target.value)} />
-                      <textarea className="w-full border rounded px-3 py-2" rows={3} placeholder="Write your review" value={myBody} onChange={e=>setMyBody(e.target.value)} />
-                      <Button type="submit" className="btn-primary" disabled={!myRating}>Submit Review</Button>
+                      <input className="w-full border rounded px-3 py-2" placeholder="Title (optional)" value={myTitle} onChange={e => setMyTitle(e.target.value)} />
+                      <textarea className="w-full border rounded px-3 py-2" rows={3} placeholder="Write your review" value={myBody} onChange={e => setMyBody(e.target.value)} />
+                      <Button type="submit" disabled={!myRating}>Submit Review</Button>
                     </form>
                   ) : (
                     <p className="text-sm text-muted-foreground">Please sign in to write a review.</p>
@@ -731,7 +734,7 @@ const ProductDetail = () => {
                     {reviews.map(r => (
                       <div key={r.id} className="py-3">
                         <div className="flex items-center gap-2">
-                          {[1,2,3,4,5].map(i => <Star key={i} className={`h-4 w-4 ${i<=r.rating?'fill-yellow-400 text-yellow-400':'text-muted-foreground'}`} />)}
+                          {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`h-4 w-4 ${i <= r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />)}
                           <span className="text-sm text-muted-foreground">{r.user?.name || 'Anonymous'}</span>
                         </div>
                         {r.title && <div className="font-medium">{r.title}</div>}
@@ -791,21 +794,21 @@ const ProductDetail = () => {
       <CartSidebar />
       {/* Fullscreen Image Viewer */}
       {isImageZoomed && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" role="dialog" aria-modal="true" onClick={()=>setIsImageZoomed(false)}>
-          <button aria-label="Close" className="absolute top-4 right-4 text-white/80 hover:text-white" onClick={(e)=>{ e.stopPropagation(); setIsImageZoomed(false); }}>
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" role="dialog" aria-modal="true" onClick={() => setIsImageZoomed(false)}>
+          <button aria-label="Close" className="absolute top-4 right-4 text-white/80 hover:text-white" onClick={(e) => { e.stopPropagation(); setIsImageZoomed(false); }}>
             <X className="h-6 w-6" />
           </button>
-          {images.length>1 && (
+          {images.length > 1 && (
             <>
-              <button aria-label="Previous" className="absolute left-4 text-white/80 hover:text-white" onClick={(e)=>{ e.stopPropagation(); setSelectedImageIndex(prev => prev===0?images.length-1:prev-1); }}>
+              <button aria-label="Previous" className="absolute left-4 text-white/80 hover:text-white" onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1); }}>
                 <ChevronLeft className="h-8 w-8" />
               </button>
-              <button aria-label="Next" className="absolute right-4 text-white/80 hover:text-white" onClick={(e)=>{ e.stopPropagation(); setSelectedImageIndex(prev => prev===images.length-1?0:prev+1); }}>
+              <button aria-label="Next" className="absolute right-4 text-white/80 hover:text-white" onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1); }}>
                 <ChevronRight className="h-8 w-8" />
               </button>
             </>
           )}
-          <img src={images[currentIndex]} alt={product.title} className="max-w-[95vw] max-h-[90vh] object-contain select-none" onClick={(e)=>e.stopPropagation()} />
+          <img src={images[currentIndex]} alt={product.title} className="max-w-[95vw] max-h-[90vh] object-contain select-none" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
       {/* Sticky mobile CTA */}

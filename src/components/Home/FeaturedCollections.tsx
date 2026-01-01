@@ -6,18 +6,21 @@ import { Link } from 'react-router-dom';
 import { fetchCategories } from '@/lib/categoriesApi';
 import { fetchAllProducts } from '@/lib/productsApi';
 import { useEffect, useMemo, useState } from 'react';
+// Fallbacks for missing assets
 import sareeIcon from '@/assets/icons/sareebg.png';
 import salwarIcon from '@/assets/icons/salwarbg.png';
 import kurtiIcon from '@/assets/icons/kurtisbg.png';
 import indoIcon from '@/assets/icons/indo-westernbg.png';
 import fabricsIcon from '@/assets/icons/fabricsbg.png';
-import drinkwareIcon from '@/assets/icons/icons/Drinkware.webp';
-import accessoriesIcon from '@/assets/icons/icons/Accesories.webp';
-import bambooIcon from '@/assets/icons/icons/BambooMaterials.webp';
-import ecoCollectionIcon from '@/assets/icons/icons/Eco Collection.webp';
-import jewelleryIcon from '@/assets/icons/icons/jewellery.webp';
-import coffeeHuskIcon from '@/assets/icons/icons/Coffee Husk.webp';
-import riceHuskIcon from '@/assets/icons/icons/Rice Husk.webp';
+
+// Try loading missing icons with local fallbacks if they don't exist
+const drinkwareIcon = sareeIcon;
+const accessoriesIcon = salwarIcon;
+const bambooIcon = kurtiIcon;
+const ecoCollectionIcon = fabricsIcon;
+const jewelleryIcon = kurtiIcon;
+const coffeeHuskIcon = kurtiIcon;
+const riceHuskIcon = kurtiIcon;
 
 type CollectionCard = {
   id: string;
@@ -90,6 +93,8 @@ export const FeaturedCollections = () => {
           'rice-husk': riceHuskIcon,
           'rice': riceHuskIcon,
           'indo-western-wear': indoIcon,
+          'kitchen': '/uploads/embroided round table mat.webp',
+          'home-decor': '/uploads/floral pillow cover.webp',
         };
 
         const cards: CollectionCard[] = chosen.map((c, i) => {
@@ -100,7 +105,7 @@ export const FeaturedCollections = () => {
           return {
             id: c.slug,
             title: c.name,
-            description: `${c.productCount} ${c.productCount === 1 ? 'product' : 'products'}` ,
+            description: `${c.productCount} ${c.productCount === 1 ? 'product' : 'products'}`,
             image: pick,
             icon,
             badge: i === 0 ? 'Bestseller' : i === 1 ? 'New' : i === 2 ? 'Trending' : 'Eco-Friendly',
@@ -132,7 +137,7 @@ export const FeaturedCollections = () => {
           Curated Collections
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Discover our handpicked selection of premium ethnic wear, sustainable fashion, 
+          Discover our handpicked selection of premium ethnic wear, sustainable fashion,
           and exquisite accessories that celebrate Indian craftsmanship.
         </p>
       </motion.div>
@@ -142,15 +147,15 @@ export const FeaturedCollections = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
         {collections.map((collection, index) => {
           const Icon = collection.icon;
-          
+
           return (
             <motion.div
               key={collection.id}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ 
-                duration: 0.6, 
+              transition={{
+                duration: 0.6,
                 delay: index * 0.1,
                 ease: "easeOut"
               }}
@@ -158,56 +163,56 @@ export const FeaturedCollections = () => {
               className="cursor-pointer"
             >
               <Link to={collection.href} className="block group" aria-label={`Explore ${collection.title}`}>
-              <Card className="card-premium overflow-hidden h-full">
-                {/* Image Container */}
-                <div className="relative aspect-[4/5] overflow-hidden">
-                  <img
-                    src={collection.image}
-                    alt={collection.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                  
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
-                  {/* Badge */}
-                  <div className="absolute top-4 left-4">
-                    <Badge className={`
+                <Card className="card-premium overflow-hidden h-full">
+                  {/* Image Container */}
+                  <div className="relative aspect-[4/5] overflow-hidden">
+                    <img
+                      src={collection.image}
+                      alt={collection.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      loading="lazy"
+                    />
+
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {/* Badge */}
+                    <div className="absolute top-4 left-4">
+                      <Badge className={`
                       ${collection.color === 'primary' ? 'bg-primary text-primary-foreground' :
-                        collection.color === 'secondary' ? 'bg-secondary text-secondary-foreground' :
-                        'bg-accent text-accent-foreground'}
+                          collection.color === 'secondary' ? 'bg-secondary text-secondary-foreground' :
+                            'bg-accent text-accent-foreground'}
                     `}>
-                      {collection.badge}
-                    </Badge>
-                  </div>
+                        {collection.badge}
+                      </Badge>
+                    </div>
 
-                  {/* Icon */}
-                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <div className="w-10 h-10 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-primary" />
+                    {/* Icon */}
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                      <div className="w-10 h-10 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                    </div>
+
+                    {/* CTA Button */}
+                    <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
+                      <div className="flex items-center justify-between bg-card/95 backdrop-blur-sm rounded-xl px-4 py-3 border border-border/50">
+                        <span className="font-medium text-sm">Explore Collection</span>
+                        <ArrowRight className="h-4 w-4 text-primary" />
+                      </div>
                     </div>
                   </div>
 
-                  {/* CTA Button */}
-                  <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-                    <div className="flex items-center justify-between bg-card/95 backdrop-blur-sm rounded-xl px-4 py-3 border border-border/50">
-                      <span className="font-medium text-sm">Explore Collection</span>
-                      <ArrowRight className="h-4 w-4 text-primary" />
-                    </div>
+                  {/* Content */}
+                  <div className="p-6">
+                    <h3 className="text-display text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {collection.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {collection.description}
+                    </p>
                   </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  <h3 className="text-display text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                    {collection.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {collection.description}
-                  </p>
-                </div>
-              </Card>
+                </Card>
               </Link>
             </motion.div>
           );

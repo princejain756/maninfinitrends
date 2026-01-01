@@ -8,250 +8,261 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.Uuid
-  email     String    @unique
-  username  String?   @unique
-  name      String?
-  password  String?   // hashed
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  role      Role      @default(USER)
-
-  sessions  Session[]
-  carts     Cart[]
-  orders    Order[]
-  addresses Address[]
+  id             String          @id @default(uuid()) @db.Uuid
+  email          String          @unique
+  username       String?         @unique
+  name           String?
+  password       String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  role           Role            @default(USER)
+  addresses      Address[]
+  carts          Cart[]
+  orders         Order[]
   passwordResets PasswordReset[]
-  reviews   Review[]
-  wishlist  WishlistItem[]
+  reviews        Review[]
+  sessions       Session[]
+  wishlist       WishlistItem[]
 }
 
 model Session {
-  id         String   @id @default(uuid()) @db.Uuid
-  token      String   @unique
-  user       User?    @relation(fields: [userId], references: [id])
-  userId     String?  @db.Uuid
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
-
-  cart       Cart[]
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String?  @db.Uuid
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  cart      Cart[]
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model Category {
-  id        String   @id @default(uuid()) @db.Uuid
-  slug      String   @unique
+  id        String            @id @default(uuid()) @db.Uuid
+  slug      String            @unique
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
   products  ProductCategory[]
 }
 
 model Material {
-  id        String   @id @default(uuid()) @db.Uuid
-  slug      String   @unique
+  id        String            @id @default(uuid()) @db.Uuid
+  slug      String            @unique
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
   products  ProductMaterial[]
 }
 
 model Product {
-  id          String            @id @default(uuid()) @db.Uuid
-  slug        String            @unique
-  title       String
-  description String?
-  // PDP meta fields
-  care        Json?
-  specs       Json?
-  seoTitle    String?
+  id             String            @id @default(uuid()) @db.Uuid
+  slug           String            @unique
+  title          String
+  description    String?
+  active         Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  care           Json?
   seoDescription String?
-  // Comma-separated keywords for now (simple)
-  seoKeywords String?
-  active      Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  variants    ProductVariant[]
-  images      ProductImage[]
-  categories  ProductCategory[]
-  reviews     Review[]
-  wishlist    WishlistItem[]
-  materials   ProductMaterial[]
+  seoKeywords    String?
+  seoTitle       String?
+  specs          Json?
+  categories     ProductCategory[]
+  images         ProductImage[]
+  materials      ProductMaterial[]
+  variants       ProductVariant[]
+  reviews        Review[]
+  wishlist       WishlistItem[]
 }
 
 model ProductVariant {
-  id                 String    @id @default(uuid()) @db.Uuid
-  product            Product   @relation(fields: [productId], references: [id])
-  productId          String    @db.Uuid
-  sku                String    @unique
-  name               String
-  priceCents         Int
+  id                  String      @id @default(uuid()) @db.Uuid
+  productId           String      @db.Uuid
+  sku                 String      @unique
+  name                String
+  priceCents          Int
+  currency            String      @default("INR")
+  attributes          Json?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
   /// Original/MRP in paise. When set and greater than priceCents, front-end shows discount.
   compareAtPriceCents Int?
-  currency           String    @default("INR")
-  attributes         Json?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  inventory          Inventory?
-  cartItems          CartItem[]
-  orderItems         OrderItem[]
+  cartItems           CartItem[]
+  inventory           Inventory?
+  orderItems          OrderItem[]
+  product             Product     @relation(fields: [productId], references: [id])
 }
 
 model ProductImage {
   id        String  @id @default(uuid()) @db.Uuid
-  product   Product @relation(fields: [productId], references: [id])
   productId String  @db.Uuid
   url       String
   alt       String?
   position  Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model ProductCategory {
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String   @db.Uuid
-  category  Category @relation(fields: [categoryId], references: [id])
-  categoryId String  @db.Uuid
+  productId  String   @db.Uuid
+  categoryId String   @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
 
   @@id([productId, categoryId])
 }
 
 model ProductMaterial {
-  product    Product  @relation(fields: [productId], references: [id])
   productId  String   @db.Uuid
-  material   Material @relation(fields: [materialId], references: [id])
   materialId String   @db.Uuid
+  material   Material @relation(fields: [materialId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
 
   @@id([productId, materialId])
 }
 
 model Inventory {
-  id         String         @id @default(uuid()) @db.Uuid
-  variant    ProductVariant @relation(fields: [variantId], references: [id])
-  variantId  String         @unique @db.Uuid
-  quantity   Int            @default(0)
-  // Optional: reserved quantity for holds
-  reserved   Int            @default(0)
-  updatedAt  DateTime       @updatedAt
+  id        String         @id @default(uuid()) @db.Uuid
+  variantId String         @unique @db.Uuid
+  quantity  Int            @default(0)
+  reserved  Int            @default(0)
+  updatedAt DateTime       @updatedAt
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
 }
 
 model Cart {
-  id         String     @id @default(uuid()) @db.Uuid
-  user       User?      @relation(fields: [userId], references: [id])
-  userId     String?    @db.Uuid
-  session    Session?   @relation(fields: [sessionId], references: [id])
-  sessionId  String?    @db.Uuid
-  status     CartStatus @default(ACTIVE)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  items      CartItem[]
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String?    @db.Uuid
+  sessionId String?    @db.Uuid
+  status    CartStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  session   Session?   @relation(fields: [sessionId], references: [id])
+  user      User?      @relation(fields: [userId], references: [id])
+  items     CartItem[]
 }
 
 model CartItem {
-  id          String         @id @default(uuid()) @db.Uuid
-  cart        Cart           @relation(fields: [cartId], references: [id])
-  cartId      String         @db.Uuid
-  variant     ProductVariant @relation(fields: [variantId], references: [id])
-  variantId   String         @db.Uuid
-  quantity    Int            @default(1)
-  unitPrice   Int            // copy of variant price at add time, in cents
-  currency    String         @default("INR")
-  options     Json?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id        String         @id @default(uuid()) @db.Uuid
+  cartId    String         @db.Uuid
+  variantId String         @db.Uuid
+  quantity  Int            @default(1)
+  unitPrice Int
+  currency  String         @default("INR")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  options   Json?
+  cart      Cart           @relation(fields: [cartId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
 
   @@unique([cartId, variantId])
 }
 
 model Order {
-  id          String       @id @default(uuid()) @db.Uuid
-  // Human-friendly incremental order number (001, 002, ...)
-  orderNumber Int          @default(autoincrement()) @unique
-  user        User?        @relation(fields: [userId], references: [id])
-  userId      String?      @db.Uuid
-  status      OrderStatus  @default(PENDING)
-  totalCents  Int          @default(0)
-  currency    String       @default("INR")
-  shippingAddressId String? @db.Uuid
-  billingAddressId  String? @db.Uuid
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  items       OrderItem[]
-  payments    Payment[]
-  shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
-  billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  id                String      @id @default(uuid()) @db.Uuid
+  userId            String?     @db.Uuid
+  status            OrderStatus @default(PENDING)
+  totalCents        Int         @default(0)
+  currency          String      @default("INR")
+  shippingAddressId String?     @db.Uuid
+  billingAddressId  String?     @db.Uuid
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  orderNumber       Int         @unique @default(autoincrement())
+  billingAddress    Address?    @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  shippingAddress   Address?    @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  user              User?       @relation(fields: [userId], references: [id])
+  items             OrderItem[]
+  payments          Payment[]
 }
 
 model OrderItem {
-  id          String         @id @default(uuid()) @db.Uuid
-  order       Order          @relation(fields: [orderId], references: [id])
-  orderId     String         @db.Uuid
-  variant     ProductVariant @relation(fields: [variantId], references: [id])
-  variantId   String         @db.Uuid
-  quantity    Int            @default(1)
-  unitPrice   Int
-  currency    String         @default("INR")
-  options     Json?
+  id        String         @id @default(uuid()) @db.Uuid
+  orderId   String         @db.Uuid
+  variantId String         @db.Uuid
+  quantity  Int            @default(1)
+  unitPrice Int
+  currency  String         @default("INR")
+  options   Json?
+  order     Order          @relation(fields: [orderId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
 }
 
 model Payment {
-  id               String      @id @default(uuid()) @db.Uuid
-  order            Order       @relation(fields: [orderId], references: [id])
-  orderId          String      @db.Uuid
-  provider         String
+  id                String        @id @default(uuid()) @db.Uuid
+  orderId           String        @db.Uuid
+  provider          String
   providerPaymentId String
-  status           PaymentStatus @default(PENDING)
-  amountCents      Int
-  currency         String      @default("INR")
-  createdAt        DateTime    @default(now())
+  status            PaymentStatus @default(PENDING)
+  amountCents       Int
+  currency          String        @default("INR")
+  createdAt         DateTime      @default(now())
+  order             Order         @relation(fields: [orderId], references: [id])
 }
 
 model PasswordReset {
-  id         String   @id @default(uuid()) @db.Uuid
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String   @db.Uuid
-  token      String   @unique
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
-  usedAt     DateTime?
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id])
 }
 
 model Address {
-  id         String  @id @default(uuid()) @db.Uuid
-  user       User?   @relation(fields: [userId], references: [id])
-  userId     String? @db.Uuid
-  // Label for quick selection (e.g., Home, Office)
-  label      String?
-  name       String
-  line1      String
-  line2      String?
-  city       String
-  state      String
-  postalCode String
-  country    String  @default("IN")
-  phone      String?
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  shippingOrders Order[] @relation("ShippingAddress")
-  billingOrders  Order[] @relation("BillingAddress")
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String?  @db.Uuid
+  name           String
+  line1          String
+  line2          String?
+  city           String
+  state          String
+  postalCode     String
+  country        String   @default("IN")
+  phone          String?
+  createdAt      DateTime @default(now())
+  label          String?
+  updatedAt      DateTime @updatedAt
+  user           User?    @relation(fields: [userId], references: [id])
+  billingOrders  Order[]  @relation("BillingAddress")
+  shippingOrders Order[]  @relation("ShippingAddress")
 }
 
 /// Simple wishlist: a user can bookmark products.
 model WishlistItem {
   id        String   @id @default(uuid()) @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
   userId    String   @db.Uuid
-  product   Product  @relation(fields: [productId], references: [id])
   productId String   @db.Uuid
   createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, productId])
+}
+
+model SupportTicket {
+  id        String       @id @default(uuid()) @db.Uuid
+  email     String
+  name      String?
+  subject   String
+  message   String
+  status    TicketStatus @default(OPEN)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  userId    String   @db.Uuid
+  rating    Int
+  title     String?
+  body      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([productId, userId])
 }
 
 enum CartStatus {
@@ -282,35 +293,9 @@ enum Role {
   ADMIN
 }
 
-model SupportTicket {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String
-  name      String?
-  subject   String
-  message   String
-  status    TicketStatus @default(OPEN)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 enum TicketStatus {
   OPEN
   IN_PROGRESS
   RESOLVED
   CLOSED
-}
-
-model Review {
-  id        String   @id @default(uuid()) @db.Uuid
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String   @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @db.Uuid
-  rating    Int
-  title     String?
-  body      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([productId, userId])
 }
